@@ -1,0 +1,68 @@
+import uuid
+from enum import Enum
+
+from sqlalchemy import (
+    Boolean, Column, DateTime, Enum as SqlAlchemyEnum, ForeignKey, String,
+    Text, func, UniqueConstraint
+)
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import declarative_base, relationship
+
+Base = declarative_base()
+
+
+class ChatType(Enum):
+    PRIVATE = 'PRIVATE'
+    GROUP = 'GROUP'
+
+
+class BaseMixin:
+    id = Column('id', UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class User(Base, BaseMixin):
+    __tablename__ = 'users'
+
+    password_hash = Column('password_hash', String(1024), nullable=False, unique=True)
+    username = Column('username', String(50), nullable=False)
+    email = Column('email', String(128), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('username', 'email', name='uix_username_email'),
+    )
+
+
+class Chat(Base, BaseMixin):
+    __tablename__ = 'chats'
+
+    owner_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    owner = relationship('User', backref='chats')
+
+    chat_name = Column('chat_name', String(50), nullable=False)
+    email = Column('email', String(128), nullable=False)
+    chat_type = Column('chat_type', SqlAlchemyEnum(ChatType), nullable=False)
+
+
+class UserJwt(BaseMixin, Base):
+    __tablename__ = 'users_jwt'
+
+    token = Column('token', String(1024), nullable=False, unique=True)
+    never_expired = Column('never_expired', Boolean, default=False, nullable=False)
+
+    owner_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    owner = relationship('User', backref='tokens')
+
+
+class Message(Base, BaseMixin):
+    __tablename__ = 'messages'
+
+    chat_id = Column(UUID(as_uuid=True), ForeignKey('chats.id'), nullable=True)
+    chat = relationship('Chat', backref='messages')
+
+    sender_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    sender = relationship('User', backref='messages')
+
+    text = Column('text', Text, nullable=False)
+    is_read = Column('is_read', Boolean, nullable=False, default=False)
