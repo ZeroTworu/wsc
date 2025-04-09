@@ -9,7 +9,7 @@ from app.http.api.auth import auth
 if TYPE_CHECKING:
     from app.adapter.store.sql_adapter import DataBaseAdapter
 
-users_rout = APIRouter(prefix='/users', tags=['users'])
+users_rout = APIRouter(prefix='/api/users', tags=['users'])
 
 
 @users_rout.get('/list')

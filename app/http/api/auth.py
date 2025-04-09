@@ -29,6 +29,7 @@ async def login(
         form_data: 'OAuth2PasswordRequestForm' = Depends(),
         adapter: 'DataBaseAdapter' = Depends(get_database_adapter),
 ) -> 'Dict[str, str]':
+    print(form_data.username, form_data.password)
     user = await adapter.get_user_witch_check_password(form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Wrong credentials')

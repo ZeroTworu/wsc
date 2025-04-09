@@ -9,7 +9,7 @@ from app.http.api.auth import auth
 if TYPE_CHECKING:
     from app.adapter.store.sql_adapter import DataBaseAdapter
 
-chat_rout = APIRouter(prefix='/chat', tags=['chat'])
+chat_rout = APIRouter(prefix='/api/chat', tags=['chat'])
 
 
 @chat_rout.post('/create', response_model=ChatDto)
