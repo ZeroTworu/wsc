@@ -1,13 +1,22 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-
-from app.settings import WS_DATA_BASE_DSN, WS_DATA_BASE_ECHO
 from typing import TYPE_CHECKING
+
+from sqlalchemy.ext.asyncio import (
+    AsyncSession, async_sessionmaker, create_async_engine,
+)
+
+from app.adapter.store.chat import ChatAdapter
 from app.adapter.store.user import UserAdapter
+from app.settings import WS_DATA_BASE_DSN, WS_DATA_BASE_ECHO
+
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.logger import get_logger
 
-class DataBaseAdapter(UserAdapter):
+
+class DataBaseAdapter(UserAdapter, ChatAdapter):
+
+    _logger = get_logger('DataBaseAdapter')
 
     _engine: 'AsyncEngine' = None
     _sc: 'async_sessionmaker[AsyncSession]' = None

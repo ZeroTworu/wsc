@@ -1,19 +1,23 @@
 import uuid
-from enum import Enum
 
 from sqlalchemy import (
     Boolean, Column, DateTime, Enum as SqlAlchemyEnum, ForeignKey, String,
-    Text, func, UniqueConstraint
+    Table, Text, UniqueConstraint, func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 
+from app.adapter.dto import ChatType
+
 Base = declarative_base()
 
 
-class ChatType(Enum):
-    PRIVATE = 'PRIVATE'
-    GROUP = 'GROUP'
+chat_participants = Table(
+    'chat_participants',
+    Base.metadata,
+    Column('chat_id', UUID(as_uuid=True), ForeignKey('chats.id'), primary_key=True),
+    Column('user_id', UUID(as_uuid=True), ForeignKey('users.id'), primary_key=True),
+)
 
 
 class BaseMixin:
@@ -41,8 +45,14 @@ class Chat(Base, BaseMixin):
     owner = relationship('User', backref='chats')
 
     chat_name = Column('chat_name', String(50), nullable=False)
-    email = Column('email', String(128), nullable=False)
     chat_type = Column('chat_type', SqlAlchemyEnum(ChatType), nullable=False)
+
+    participants = relationship(
+        'User',
+        secondary=chat_participants,
+        backref='joined_chats',
+        lazy='selectin',
+    )
 
 
 class UserJwt(BaseMixin, Base):

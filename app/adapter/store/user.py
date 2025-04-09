@@ -1,14 +1,20 @@
-from app.adapter.store.models import User, UserJwt
-from app.adapter.dto import UserDto, TokenDto
-from app.adapter.hasher import generate_password_hash, check_password_hash
-from sqlalchemy.exc import NoResultFound
-from sqlalchemy.future import select
 from typing import TYPE_CHECKING
+
+from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import selectinload
+from starlette import status
+
+from app.adapter.dto import TokenDto, UserDto
+from app.adapter.hasher import check_password_hash, generate_password_hash
+from app.adapter.store.models import User, UserJwt
 
 if TYPE_CHECKING:
-    from app.adapter.store.adapter import DataBaseAdapter
+    from typing import List
     from uuid import UUID
+
+    from app.adapter.store.sql_adapter import DataBaseAdapter
 
 
 class UserAdapter:
@@ -27,9 +33,16 @@ class UserAdapter:
                 email=email,
             )
             session.add(user)
-            await session.commit()
+            try:
+                await session.commit()
+            except IntegrityError as exc:
+                await session.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail='Email & username already exists',
+                ) from exc
             return UserDto(
-                user_id=user.id,
+                id=user.id,
                 username=username,
                 email=user.email,
             )
@@ -39,7 +52,7 @@ class UserAdapter:
         username: 'str',
         password: 'str',
     ) -> 'UserDto|None':
-
+        self._logger.info('get_user_witch_check_password called with username=%s', username)
         async with self._sc() as session:
             query = select(User).where(User.username == username)
             result = await session.execute(query)
@@ -47,14 +60,16 @@ class UserAdapter:
             try:
                 user = result.scalars().one()
             except NoResultFound:
+                self._logger.info('get_user_witch_check_password no user with username=%s', username)
                 return None
 
             if check_password_hash(password, user.password_hash):
                 return UserDto(
-                    user_id=user.id,
+                    id=user.id,
                     username=user.username,
                     email=user.email,
                 )
+            self._logger.info('get_user_witch_check_password incorrect password for username=%s', username)
             return None
 
     async def create_jwt(self: 'DataBaseAdapter', user: 'UserDto', token: 'str') -> 'TokenDto|None':
@@ -89,16 +104,25 @@ class UserAdapter:
                 token=jwt.token,
                 owner_id=user.id,
             )
+
     async def get_user_by_id(self: 'DataBaseAdapter', user_id: 'UUID') -> 'UserDto|None':
         async with self._sc() as session:
-            query = select(User).where(User.id==user_id)
+            query = select(User).where(User.id == user_id)
             result = await session.execute(query)
             try:
                 user = result.scalars().one()
             except NoResultFound:
                 return None
             return UserDto(
-                user_id=user.id,
+                id=user.id,
                 username=user.username,
                 email=user.email,
             )
+
+    async def list_users(self: 'DataBaseAdapter', exclude_user_id: 'UUID') -> 'List[UserDto]':
+        async with self._sc() as session:
+            result = await session.execute(
+                select(User).where(User.id != exclude_user_id)
+            )
+            users = result.scalars().all()
+            return [UserDto.model_validate(user) for user in users]
