@@ -51,7 +51,7 @@ const chat = computed(() => store.getters['chats/chatById'](chatId));
 const sendMessage = () => {
   if (!newMessage.value.trim()) return;
   const msg = {
-    type: EventType.Message,
+    type: EventType.MESSAGE,
     chat_id: chatId,
     message: newMessage.value.trim(),
   };
@@ -64,21 +64,20 @@ const sendMessage = () => {
 };
 
 const handleMessage = (event: any) => {
-  console.log(event);
-  if (event.type === EventType.Message && event.chat_id === chatId) {
+  if (event.type === EventType.MESSAGE && event.chat_id === chatId) {
       messages.value.push({
-        username: 'data.username',
+        username: event.user.username,
         content: event.message,
       });
     }
 };
 
 onMounted(() => {
-  eventBus.on(EventType.Message, handleMessage);
+  eventBus.on(EventType.MESSAGE, handleMessage);
 });
 
 onBeforeUnmount(() => {
-  eventBus.off(EventType.Message, handleMessage);
+  eventBus.off(EventType.MESSAGE, handleMessage);
 });
 
 </script>

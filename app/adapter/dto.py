@@ -10,23 +10,12 @@ class ChatType(Enum):
     GROUP = 'GROUP'
 
 class WebSocketEventType(Enum):
-  PING = 'PING'
-  PONG= 'PONG'
-  MESSAGE = 'MESSAGE'
-  USER_JOIN_CHAT = 'USER_JOIN_CHAT'
-  USER_LEFT_CHAT = 'USER_LEFT_CHAT'
+    MESSAGE =  'MESSAGE'
+    USER_JOIN_CHAT = 'USER_JOIN_CHAT'
+    USER_LEFT_CHAT = 'USER_LEFT_CHAT'
+    PING = 'PING'
+    PONG = 'PONG'
 
-class WebSocketEvent(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    type: WebSocketEventType
-    ws: WebSocket
-    chat_id: UUID | None = None
-    message: str | None = None
-
-    @property
-    def host_port(self) -> str:
-        return f'{self.ws.client.host}:{self.ws.client.port}'
 
 class UserDto(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -35,6 +24,19 @@ class UserDto(BaseModel):
     email: str
     username: str
 
+
+class WebSocketEvent(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    type: WebSocketEventType
+    ws: WebSocket
+    user: UserDto
+    chat_id: UUID | None = None
+    message: str | None = None
+
+    @property
+    def host_port(self) -> str:
+        return f'{self.ws.client.host}:{self.ws.client.port}'
 
 class UserCreateDto(BaseModel):
     email: str

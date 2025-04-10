@@ -30,9 +30,14 @@ async def disconnect_user(user: 'UserDto', websocket: 'WebSocket'):
         await websocket.close()
 
 
-async def broadcast_to_user(user_id: 'UUID', message: 'str', chat_id: 'UUID|None' = None):
-    msg = {'type': WebSocketEventType.MESSAGE.value, 'message': message, 'chat_id': str(chat_id)}
-    await gather(*(conn.send_json(msg) for conn in active_connections.get(user_id, [])))
+async def broadcast_to_user(wse: WebSocketEvent, user_id: UUID):
+    exclude = {
+        'ws': True,
+        'user': {'user_id', 'email'},
+    }
+    payload = wse.model_dump_json(exclude=exclude)
+    print(payload)
+    await gather(*(conn.send_text(payload) for conn in active_connections.get(user_id, [])))
 
 async def broadcast_to_chat(wse: WebSocketEvent, adapter: DataBaseAdapter):
     chat = await adapter.get_chat_by_id(wse.chat_id)
@@ -40,7 +45,7 @@ async def broadcast_to_chat(wse: WebSocketEvent, adapter: DataBaseAdapter):
         _logger.warning(f'No chat for {wse.chat_id}')
         return
     for user in chat.participants:
-        await broadcast_to_user(user.user_id, wse.message, chat.chat_id)
+        await broadcast_to_user(wse, user.user_id)
 
 async def handle_ws_event(wse: WebSocketEvent, adapter: DataBaseAdapter):
     match wse.type:
@@ -57,7 +62,7 @@ async def websocket_endpoint(ws: WebSocket, user: UserDto = Depends(auth_ws), ad
         async for msg in ws.iter_json():
             _logger.info(f'{user.user_id} {user.username}: {msg}')
             try:
-                msg.update({'ws': ws})
+                msg.update({'ws': ws, 'user': user})
                 event = WebSocketEvent.model_validate(msg)
                 await handle_ws_event(event, adapter)
             except PydanticValidationError as pve:

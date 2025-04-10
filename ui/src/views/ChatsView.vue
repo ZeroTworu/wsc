@@ -63,7 +63,7 @@ onMounted(async () => {
 
 const openChat = (chatId: string) => {
   if (ws.value?.readyState === WebSocket.OPEN) {
-    ws.value.send(JSON.stringify({ type: EventType.UserJoin, chat_id: chatId }));
+    ws.value.send(JSON.stringify({ type: EventType.USER_JOIN_CHAT, chat_id: chatId }));
   }
   router.push(`/chat/${chatId}`);
 };
@@ -71,7 +71,7 @@ const openChat = (chatId: string) => {
 onBeforeUnmount(() => {
   const chatId = router.currentRoute.value.params.chat_id;
   if (chatId && ws.value?.readyState === WebSocket.OPEN) {
-    ws.value.send(JSON.stringify({ type: EventType.UserJoin, chat_id: chatId }));
+    ws.value.send(JSON.stringify({ type: EventType.USER_LEFT_CHAT, chat_id: chatId }));
   }
 });
 </script>

@@ -95,7 +95,7 @@ const actions = {
     const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}?token=${access_token}`);
     ws.onopen = () => {
       setInterval(() => {
-        ws.send(JSON.stringify({type: EventType.Ping}));
+        ws.send(JSON.stringify({type: EventType.PING}));
       }, 2000)
     };
 
@@ -103,8 +103,11 @@ const actions = {
       try {
         const data = JSON.parse(event.data);
         switch (data.type) {
-          case EventType.Message:
-            eventBus.emit(EventType.Message, data);
+          case EventType.MESSAGE:
+            eventBus.emit(EventType.MESSAGE, data);
+            break;
+          default:
+            console.log("UD", event)
             break;
         }
       } catch (error) {
@@ -114,11 +117,13 @@ const actions = {
 
     ws.onerror = (error) => {
       console.error("ws.onerror:", error);
+      commit("SET_WS", null);
+      setTimeout(() => dispatch("connectWebSocket"), 1000);
     };
 
     ws.onclose = () => {
       commit("SET_WS", null);
-      setTimeout(() => dispatch("connectWebSocket"), 5000);
+      setTimeout(() => dispatch("connectWebSocket"), 1000);
     };
 
     commit("SET_WS", ws);
