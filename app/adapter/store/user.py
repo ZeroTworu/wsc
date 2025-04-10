@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import selectinload
 from starlette import status
 
-from app.adapter.dto import TokenDto, UserDto
+from app.adapter.dto.user import TokenDto, UserDto
 from app.adapter.hasher import check_password_hash, generate_password_hash
 from app.adapter.store.models import User, UserJwt
 

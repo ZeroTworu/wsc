@@ -23,9 +23,8 @@ async def create_access_token(user: 'UserDto', adapter: 'DataBaseAdapter') -> 's
         'email': user.email,
         'username': user.username,
     }
-    expire = datetime.datetime.now(datetime.UTC) + (
-            datetime.timedelta(minutes=WS_ACCESS_TOKEN_EXPIRE_MINUTES) or datetime.timedelta(minutes=15)
-    )
+    delta = datetime.timedelta(minutes=WS_ACCESS_TOKEN_EXPIRE_MINUTES) or datetime.timedelta(minutes=15)
+    expire = datetime.datetime.now(datetime.UTC) + delta
     payload.update({'exp': expire})
     encoded_jwt = jwt.encode(payload, WS_SECRET_KEY, algorithm=WS_ALGORITHM)
     await adapter.create_jwt(user, encoded_jwt)

@@ -1,10 +1,10 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.http.api.auth import auth_rout
 from app.http.api.chat import chat_rout
 from app.http.api.user import users_rout
 from app.http.api.websocket import ws_rout
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title='WS Chat Zero Two')
 

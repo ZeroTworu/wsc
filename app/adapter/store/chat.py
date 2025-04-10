@@ -1,12 +1,12 @@
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException
-from sqlalchemy import insert, select, or_
+from sqlalchemy import insert, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from starlette import status
 
-from app.adapter.dto import ChatDto
+from app.adapter.dto.chat import ChatDto
 from app.adapter.store.models import Chat, chat_participants
 
 if TYPE_CHECKING:
@@ -80,5 +80,3 @@ class ChatAdapter:
             )
             chat = result.scalar_one()
             return ChatDto.model_validate(chat)
-
-

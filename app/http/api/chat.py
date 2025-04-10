@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List
 from fastapi import APIRouter, Depends
 
 from app.adapter import get_database_adapter
-from app.adapter.dto import ChatCreateDto, ChatDto, UserDto
+from app.adapter.dto.chat import ChatCreateDto, ChatDto, UserDto
 from app.http.api.auth import auth_http
 
 if TYPE_CHECKING:

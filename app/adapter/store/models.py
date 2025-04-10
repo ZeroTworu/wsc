@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import (
+from sqlalchemy import (    # noqa: WPS235
     Boolean, Column, DateTime, Enum as SqlAlchemyEnum, ForeignKey, String,
     Table, Text, UniqueConstraint, func,
 )

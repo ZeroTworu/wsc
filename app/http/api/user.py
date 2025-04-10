@@ -3,10 +3,9 @@ from typing import List
 from fastapi import APIRouter, Depends
 
 from app.adapter import get_database_adapter
-from app.adapter.dto import UserDto
-from app.http.api.auth import auth_http
+from app.adapter.dto.user import UserDto
 from app.adapter.store.sql_adapter import DataBaseAdapter
-
+from app.http.api.auth import auth_http
 
 users_rout = APIRouter(prefix='/api/users', tags=['users'])
 

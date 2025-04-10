@@ -1,14 +1,12 @@
-from typing import TYPE_CHECKING, Dict
+from typing import AsyncGenerator, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from app.adapter import get_database_adapter
-from app.adapter.dto import TokenDto, UserCreateDto, UserDto
-from app.http.jwt import create_access_token, get_current_user
+from app.adapter.dto.user import TokenDto, UserCreateDto, UserDto
 from app.adapter.store.sql_adapter import DataBaseAdapter
-from typing import AsyncGenerator
-
+from app.http.jwt import create_access_token, get_current_user
 
 auth_rout = APIRouter(prefix='/auth', tags=['auth'])
 
@@ -17,6 +15,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/login')
 
 async def auth_http(token: 'str' = Depends(oauth2_scheme), adapter: str = Depends(get_database_adapter)) -> 'UserDto':
     return await get_current_user(token, adapter)
+
 
 async def auth_ws(token: 'str', adapter: AsyncGenerator[DataBaseAdapter] = Depends(get_database_adapter)) -> 'UserDto':
     return await get_current_user(token, adapter)

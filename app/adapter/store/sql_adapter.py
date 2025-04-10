@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.adapter.store.chat import ChatAdapter
+from app.adapter.store.messages import MessageAdapter
 from app.adapter.store.user import UserAdapter
 from app.settings import WS_DATA_BASE_DSN, WS_DATA_BASE_ECHO
 
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 from app.logger import get_logger
 
 
-class DataBaseAdapter(UserAdapter, ChatAdapter):
+class DataBaseAdapter(UserAdapter, ChatAdapter, MessageAdapter):
 
     _logger = get_logger('DataBaseAdapter')
 
