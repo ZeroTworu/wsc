@@ -5,7 +5,7 @@ export class Api {
         return axios.get("/auth/me");
     }
     static getUsers() {
-        return axios.put("/api/users/list");
+        return axios.get("/api/users/list/all");
     }
 
     static login(val) {

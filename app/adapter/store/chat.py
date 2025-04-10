@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from starlette import status
@@ -51,11 +51,16 @@ class ChatAdapter:
         async with self._sc() as session:
             result = await session.execute(
                 select(Chat)
-                .join(chat_participants)
-                .where(chat_participants.c.user_id == user_id)
+                .outerjoin(chat_participants, Chat.id == chat_participants.c.chat_id)
                 .options(selectinload(Chat.participants))
+                .where(
+                    or_(
+                        Chat.owner_id == user_id,
+                        chat_participants.c.user_id == user_id,
+                    )
+                )
             )
-            chats = result.scalars().all()
+            chats = result.scalars().unique().all()
             return [ChatDto.model_validate(chat) for chat in chats]
 
     async def get_all_chats(self: 'DataBaseAdapter') -> 'List[ChatDto]':

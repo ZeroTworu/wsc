@@ -90,11 +90,13 @@ const actions = {
 
     const token = localStorage.getItem("authToken");
     if (!token) return;
-
-    const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}?token=${token}`);
+    const access_token = JSON.parse(token).access_token;
+    const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}?token=${access_token}`);
 
     ws.onopen = () => {
-      ws.send(JSON.stringify({type: "ping"}));
+      setInterval(() => {
+        ws.send(JSON.stringify({type: "ping"}));
+      }, 2000)
     };
 
     ws.onmessage = (event) => {
