@@ -8,6 +8,18 @@ export class Api {
         return axios.get("/api/users/list/all");
     }
 
+    static getMyChats() {
+        return axios.get("/api/chat/list/my");
+    }
+
+    static getAllChats() {
+        return axios.get("/api/chat/list/all");
+    }
+
+    static createChat(val) {
+        return axios.post("/api/chat/create", val);
+    }
+
     static login(val) {
         const form = new FormData();
 

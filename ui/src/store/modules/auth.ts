@@ -1,6 +1,8 @@
-import type {Module} from "vuex";
+import type { Module, ActionContext } from "vuex";
 import type {RootState} from "@/store";
 import {Api} from "@/api/api";
+import { EventType } from "@/store/stats"
+import { eventBus } from "@/store/EventBus.ts";
 
 export type SystemUser = {
   user_id: string;
@@ -52,13 +54,13 @@ const mutations = {
 };
 
 const actions = {
-  async login({commit, dispatch}: any, credentials: any) {
+  async login({commit, dispatch}: ActionContext<AuthState, RootState>, credentials: any) {
     const {data} = await Api.login(credentials);
     commit("SET_TOKEN", data);
     dispatch("connectWebSocket");
   },
 
-  async register({commit, dispatch}: any, userInfo: any) {
+  async register({commit, dispatch}: ActionContext<AuthState, RootState>, userInfo: any) {
     const {data} = await Api.register(userInfo);
     commit("SET_TOKEN", data);
     const user = await Api.getMe();
@@ -66,7 +68,7 @@ const actions = {
     dispatch("connectWebSocket");
   },
 
-  getMe({commit}) {
+  getMe({commit}: ActionContext<AuthState, RootState>) {
     return Api.getMe()
       .then((res) => {
         commit("SET_USER", res.data);
@@ -77,32 +79,34 @@ const actions = {
       });
   },
 
-  isCurrentUser({state}): boolean {
+  isCurrentUser({state}: ActionContext<AuthState, RootState>): boolean {
     return state.me !== null;
   },
 
-  exit({commit}) {
+  exit({commit}: ActionContext<AuthState, RootState>) {
     commit("CLEAR_USER");
   },
 
-  connectWebSocket({commit, dispatch, state}: any) {
+  connectWebSocket({commit, dispatch, state}: ActionContext<AuthState, RootState>) {
     if (state.ws) return;
-
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("authToken") || "{}";
     if (!token) return;
     const access_token = JSON.parse(token).access_token;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}?token=${access_token}`);
-
     ws.onopen = () => {
       setInterval(() => {
-        ws.send(JSON.stringify({type: "ping"}));
+        ws.send(JSON.stringify({type: EventType.Ping}));
       }, 2000)
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log(data);
+        switch (data.type) {
+          case EventType.Message:
+            eventBus.emit(EventType.Message, data);
+            break;
+        }
       } catch (error) {
         console.error("ws.onmessage.ERROR:", error);
       }

@@ -1,4 +1,4 @@
-import { Module } from "vuex";
+import type { Module, ActionContext } from "vuex";
 import { Api } from "@/api/api"
 import type {RootState} from "@/store";
 
@@ -29,7 +29,7 @@ export const users: Module<UsersState, RootState> = {
   users: (state: UsersState) => state.listUsers
   },
   actions: {
-    async fetchUsers({ commit }) {
+    async fetchUsers({ commit }: ActionContext<UsersState, RootState>) {
       const response = await Api.getUsers();
       commit("setUsers", response.data);
     },

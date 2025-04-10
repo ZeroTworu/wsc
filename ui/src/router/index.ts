@@ -29,13 +29,22 @@ const router = createRouter({
         guest: false,
       },
     },
-        {
+    {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
       meta: {
         guest: true,
       },
+    },
+    {
+      path: '/chat/:chat_id',
+      name: 'chat-dialog',
+      component: () => import('../views/ChatDialogView.vue'),
+      meta: {
+        guest: false,
+      },
+      props: true,
     },
   ],
 })

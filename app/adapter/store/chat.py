@@ -70,3 +70,15 @@ class ChatAdapter:
             )
             chats = result.scalars().all()
             return [ChatDto.model_validate(chat) for chat in chats]
+
+    async def get_chat_by_id(self: 'DataBaseAdapter', chat_id: 'UUID') -> 'ChatDto|None':
+        async with self._sc() as session:
+            result = await session.execute(
+                select(Chat)
+                .options(selectinload(Chat.participants))
+                .where(Chat.id == chat_id)
+            )
+            chat = result.scalar_one()
+            return ChatDto.model_validate(chat)
+
+
