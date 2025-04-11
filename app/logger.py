@@ -3,11 +3,6 @@ import logging
 from app.settings import WS_LOG_LEVEL
 
 
-
-
-
-
-
 def get_logger(name: 'str'):
     handler = logging.StreamHandler()
     handler.formatter = logging.Formatter(fmt=f'[%(asctime)s {name}]: %(message)s', datefmt='%H:%M:%S')
