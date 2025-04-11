@@ -35,4 +35,8 @@ export class Api {
     static register(val) {
         return axios.post("/auth/register", val);
     }
+
+    static getHistory(chat_id: string, limit=50, offset=0) {
+        return axios.get(`/auth/chat/history/${chat_id}?limit=${limit}&offset=${offset}`);
+    }
 }

@@ -1,9 +1,12 @@
 from typing import TYPE_CHECKING, List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
 from app.adapter import get_database_adapter
-from app.adapter.dto.chat import ChatCreateDto, ChatDto, UserDto
+from app.adapter.dto.chat import (
+    ChatCreateDto, ChatDto, ChatMessageDto, UserDto,
+)
 from app.http.api.auth import auth_http
 
 if TYPE_CHECKING:
@@ -29,9 +32,12 @@ async def my_chats(
     return await adapter.get_my_chats(user_id=user.user_id)
 
 
-@chat_rout.get('/list/all', response_model=List[ChatDto])
-async def all_chats(
+@chat_rout.get('/history/{chat_id}', response_model=List[ChatMessageDto])
+async def chat_history(
+    chat_id: 'UUID',
+    offset: int = 0,
+    limit: int = 5,
     adapter: 'DataBaseAdapter' = Depends(get_database_adapter),
-    _: 'UserDto' = Depends(auth_http),  # В реальности не нужно, просто что бы сработал механизм аутентификации
-) -> 'List[ChatDto]':
-    return await adapter.get_all_chats()
+    current_user: 'UserDto' = Depends(auth_http),
+) -> 'List[ChatMessageDto]':
+    return await adapter.get_chat_messages_by_chat_and_user_id(chat_id, current_user.user_id, offset, limit)

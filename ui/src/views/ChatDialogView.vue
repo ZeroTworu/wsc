@@ -8,8 +8,45 @@
       </v-toolbar>
 
       <v-card-text class="chat-window">
+        <v-alert
+          v-if="!isWsConnected"
+          type="info"
+          border="start"
+          colored-border
+          class="mb-4 d-flex align-center"
+        >
+          <v-progress-circular indeterminate size="20" class="mr-2" />
+          Соединение потеряно...
+          <v-spacer />
+          <v-btn small @click="reconnectWebSocket" color="primary" variant="text">
+            Переподключиться
+          </v-btn>
+        </v-alert>
+
         <div v-for="(msg, index) in messages" :key="index" class="message">
           <strong>{{ msg.username }}:</strong> {{ msg.content }}
+          <div class="read-status" @mouseenter="showReadersList(index)" @mouseleave="hideReadersList(index)">
+            <span v-if="msg.readers.length > 0" class="read-checks">
+              <v-icon>mdi-check</v-icon>
+              <v-icon v-if="msg.readers.length > 1">mdi-check</v-icon>
+            </span>
+            <span v-else class="read-checks">
+              <v-icon>mdi-check</v-icon>
+            </span>
+            <v-menu v-model="msg.showReadersList" activator="parent" offset-y>
+              <v-list>
+                <v-list-item
+                  v-for="reader in msg.readers.filter(r => r.user_id !== user.user_id)"
+                  :key="reader.user_id"
+                >
+                  <v-list-item-title>{{ reader.username }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item v-if="msg.readers.length === 0 || msg.readers.every(r => r.user_id === user.user_id)">
+                  <v-list-item-title>Нет прочитавших</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </div>
         </div>
       </v-card-text>
 
@@ -22,15 +59,18 @@
           class="flex-grow-1"
           @keyup.enter="sendMessage"
           clearable
+          :disabled="!isWsConnected"
         />
-        <v-btn @click="sendMessage" color="primary">Отправить</v-btn>
+        <v-btn @click="sendMessage" color="primary" :disabled="!isWsConnected">
+          Отправить
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue';
+import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { EventType } from "@/store/stats";
@@ -41,45 +81,122 @@ const route = useRoute();
 const router = useRouter();
 
 const chatId = route.params.chat_id as string;
-const messages = ref<{ username: string; content: string }[]>([]);
+const messages = ref<
+  {
+    username: string;
+    content: string;
+    readers: any[];
+    showReadersList: boolean;
+    id?: number;
+  }[]
+>([]);
+
 const newMessage = ref('');
 const ws = computed(() => store.state.auth.ws);
 const user = computed(() => store.getters['auth/me']);
 const chat = computed(() => store.getters['chats/chatById'](chatId));
+const unreadMessageIds = ref<Set<string>>(new Set());
 
+const isWsConnected = computed(() => {
+  return ws.value && ws.value.readyState === WebSocket.OPEN;
+});
+
+const reconnectWebSocket = () => {
+  if (ws.value) {
+    try {
+      ws.value.close();
+    } catch (e) {
+      console.warn('Ошибка при закрытии WebSocket:', e);
+    }
+  }
+  store.dispatch('auth/connectWebSocket');
+};
 
 const sendMessage = () => {
-  if (!newMessage.value.trim()) return;
+  if (!isWsConnected.value || !newMessage.value.trim()) return;
   const msg = {
     type: EventType.MESSAGE,
     chat_id: chatId,
     message: newMessage.value.trim(),
   };
-  if (!ws.value || ws.value.readyState !== WebSocket.OPEN) {
-    console.warn("WebSocket не готов к отправке сообщения");
-    return;
-  }
   ws.value?.send(JSON.stringify(msg));
   newMessage.value = '';
 };
 
 const handleMessage = (event: any) => {
-  if (event.type === EventType.MESSAGE && event.chat_id === chatId) {
-      messages.value.push({
-        username: event.user.username,
-        content: event.message,
-      });
+  if (event.chat_id !== chatId) {
+    return;
+  }
+
+  const newMsg = {
+    id: event.message_id,
+    username: event.user.username,
+    content: event.message,
+    readers: event.readers || [],
+    showReadersList: false,
+  };
+  messages.value.push(newMsg);
+  if (!newMsg.readers.find((r: any) => r.id === user.value.id)) {
+    unreadMessageIds.value.add(event.message_id);
+  }
+
+};
+
+const handleUpdateReaders = (event: any) => {
+    console.log(event);
+    const msg = messages.value.find(m => m.id === event.message_id);
+    if (msg) {
+      msg.readers = event.readers;
+
+      if (event.readers.some((r: any) => r.user_id === user.value.id)) {
+        unreadMessageIds.value.delete(event.message_id);
+      }
     }
+
+};
+
+const sendReadUpdates = () => {
+  if (!isWsConnected.value || unreadMessageIds.value.size === 0) return;
+  console.log(unreadMessageIds.value);
+  for (const id of unreadMessageIds.value) {
+    const readMsg = {
+      type: EventType.UPDATE_READERS,
+      chat_id: chatId,
+      message_id: id,
+      user_id: user.value.user_id,
+    };
+    ws.value?.send(JSON.stringify(readMsg));
+  }
+
+  unreadMessageIds.value.clear();
+};
+
+const onVisibilityChange = () => {
+  if (document.visibilityState === 'visible') {
+    sendReadUpdates();
+  }
+};
+
+const showReadersList = (index: number) => {
+  messages.value[index].showReadersList = true;
+};
+const hideReadersList = (index: number) => {
+  messages.value[index].showReadersList = false;
 };
 
 onMounted(() => {
   eventBus.on(EventType.MESSAGE, handleMessage);
+  eventBus.on(EventType.UPDATE_READERS, handleUpdateReaders);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  window.addEventListener('focus', onVisibilityChange)
 });
 
 onBeforeUnmount(() => {
   eventBus.off(EventType.MESSAGE, handleMessage);
+  eventBus.off(EventType.UPDATE_READERS, handleUpdateReaders);
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+  window.removeEventListener('focus', onVisibilityChange)
 });
-
 </script>
 
 <style scoped>
@@ -92,5 +209,15 @@ onBeforeUnmount(() => {
 
 .message {
   margin-bottom: 10px;
+}
+
+.read-status {
+  position: relative;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.read-checks {
+  color: #4caf50;
 }
 </style>

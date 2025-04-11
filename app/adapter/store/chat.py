@@ -13,15 +13,15 @@ if TYPE_CHECKING:
     from typing import List
     from uuid import UUID
 
-    from app.adapter.dto import ChatCreateDto
+    from app.adapter.dto.chat import ChatCreateDto
     from app.adapter.store.sql_adapter import DataBaseAdapter
 
 
 class ChatAdapter:
     async def create_chat(
-        self: 'DataBaseAdapter',
-        owner_id: 'UUID',
-        chat: 'ChatCreateDto',
+            self: 'DataBaseAdapter',
+            owner_id: 'UUID',
+            chat: 'ChatCreateDto',
     ) -> 'ChatDto':
         async with self._sc() as session:
             created_chat = Chat(
@@ -78,5 +78,24 @@ class ChatAdapter:
                 .options(selectinload(Chat.participants))
                 .where(Chat.id == chat_id)
             )
-            chat = result.scalar_one()
+            chat = result.scalar_one_or_none()
+            if chat is None:
+                return None
             return ChatDto.model_validate(chat)
+
+    async def get_chat_by_id_and_user_id(self: 'DataBaseAdapter', chat_id: 'UUID', user_id: 'UUID') -> 'ChatDto|None':
+        async with self._sc() as session:
+            result = await session.execute(
+                select(Chat)
+                .options(selectinload(Chat.participants))
+                .where(
+                    Chat.id == chat_id,
+                    or_(
+                        Chat.owner_id == user_id,
+                        Chat.participants.any(id=user_id)
+                    )
+                )
+            )
+
+            if (chat := result.scalar_one_or_none()) is not None:  # noqa: WPS332
+                return ChatDto.model_validate(chat, from_attributes=True)

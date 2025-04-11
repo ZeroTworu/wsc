@@ -7,6 +7,7 @@ from pydantic import ValidationError as PydanticValidationError
 from starlette.websockets import WebSocketState
 
 from app.adapter import DataBaseAdapter, get_database_adapter
+from app.adapter.dto.chat import ChatMessageCreateDto
 from app.adapter.dto.user import UserDto
 from app.adapter.dto.ws import WebSocketEvent, WebSocketEventType
 from app.http.api.auth import auth_ws
@@ -42,11 +43,36 @@ async def broadcast_to_user(wse: WebSocketEvent, user_id: UUID):
     await gather(*coroutines)
 
 
-async def broadcast_to_chat(wse: WebSocketEvent, adapter: DataBaseAdapter):
-    chat = await adapter.get_chat_by_id(wse.chat_id)
+async def broadcast_new_message(wse: WebSocketEvent, adapter: DataBaseAdapter):
+    _logger.info('Broadcast new message for %s', wse)
+    chat = await adapter.get_chat_by_id_and_user_id(wse.chat_id, wse.user.user_id)
     if chat is None:
         _logger.warning(f'No chat for {wse.chat_id}')
         return
+    saved_message = await adapter.save_message(
+        ChatMessageCreateDto(
+            sender_id=wse.user.user_id,
+            chat_id=wse.chat_id,
+            text=wse.message,
+        ),
+    )
+    wse.message_id = saved_message.message_id
+    wse.user_id = saved_message.sender_id
+
+    coroutines = [broadcast_to_user(wse, user.user_id) for user in chat.participants]
+    await gather(*coroutines)
+
+
+async def broadcast_update_readers(wse: WebSocketEvent, adapter: DataBaseAdapter):
+    _logger.info('Broadcast update readers for %s', wse)
+    chat = await adapter.get_chat_by_id_and_user_id(wse.chat_id, wse.user.user_id)
+
+    if chat is None:
+        _logger.warning(f'No chat for {wse.chat_id}')
+        return
+
+    msg = await adapter.add_reader(wse.chat_id, wse.message_id, wse.user.user_id)
+    wse.readers = msg.readers
     coroutines = [broadcast_to_user(wse, user.user_id) for user in chat.participants]
     await gather(*coroutines)
 
@@ -56,7 +82,9 @@ async def handle_ws_event(wse: WebSocketEvent, adapter: DataBaseAdapter):
         case WebSocketEventType.PING | WebSocketEventType.PONG:
             _logger.info(f'Received {wse.type} from {wse.host_port}: ')
         case WebSocketEventType.MESSAGE:
-            await broadcast_to_chat(wse, adapter)
+            await broadcast_new_message(wse, adapter)
+        case WebSocketEventType.UPDATE_READERS:
+            await broadcast_update_readers(wse, adapter)
         case _: _logger.info(f'Not handled {wse.type}')
 
 

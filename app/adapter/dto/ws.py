@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import List
 from uuid import UUID
 
 from fastapi import WebSocket
@@ -13,6 +14,7 @@ class WebSocketEventType(Enum):
     USER_LEFT_CHAT = 'USER_LEFT_CHAT'
     PING = 'PING'
     PONG = 'PONG'
+    UPDATE_READERS = 'UPDATE_READERS'
 
 
 class WebSocketEvent(BaseModel):
@@ -21,7 +23,11 @@ class WebSocketEvent(BaseModel):
     type: WebSocketEventType
     ws: WebSocket
     user: UserDto
+    readers: List[UserDto] = []
+
     chat_id: UUID | None = None
+    message_id: UUID | None = None
+    user_id: UUID | None = None
     message: str | None = None
 
     @property

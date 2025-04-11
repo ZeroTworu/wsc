@@ -18,19 +18,20 @@ class ChatCreateDto(BaseModel):
     participants: List[UUID]
 
 
-class ChatDto(BaseModel):
+class ChatDto(ChatCreateDto):
     model_config = ConfigDict(from_attributes=True)
     chat_id: UUID = Field(..., alias='id')
-    chat_name: str
-    chat_type: ChatType
     owner_id: UUID
     participants: List[UserDto]
 
 
-class MessageDto(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    message_id: UUID = Field(alias='id')
+class ChatMessageCreateDto(BaseModel):
     sender_id: UUID
     chat_id: UUID
-    message: str
-    is_read: bool = False
+    text: str
+
+
+class ChatMessageDto(ChatMessageCreateDto):
+    model_config = ConfigDict(from_attributes=True)
+    message_id: UUID = Field(alias='id')
+    readers: List[UserDto] = Field(default_factory=list)

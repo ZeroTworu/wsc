@@ -11,8 +11,8 @@ from app.settings import (
 )
 
 if TYPE_CHECKING:
-    from app.adapter.dto import UserDto
-    from app.adapter.store.adapter import DataBaseAdapter
+    from app.adapter.dto.user import UserDto
+    from app.adapter.store.sql_adapter import DataBaseAdapter
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/login')
 

@@ -1,12 +1,6 @@
-from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
-
-
-class ChatType(Enum):
-    PRIVATE = 'PRIVATE'
-    GROUP = 'GROUP'
 
 
 class UserDto(BaseModel):

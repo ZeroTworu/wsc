@@ -1,5 +1,5 @@
 import type { Module, ActionContext } from "vuex";
-import type {RootState} from "@/store";
+import store, {type RootState} from "@/store";
 import {Api} from "@/api/api";
 import { EventType } from "@/store/stats"
 import { eventBus } from "@/store/EventBus.ts";
@@ -17,20 +17,23 @@ export type Token = {
 
 export interface AuthState {
   me: SystemUser | null;
+  token: Token | null;
   ws: WebSocket | null;
 }
 
 const state: AuthState = {
   me: null,
+  token: null,
   ws: null as WebSocket | null,
 };
 
 const mutations = {
   SET_USER(state: AuthState, user: SystemUser) {
     localStorage.setItem("authUser", JSON.stringify(user));
+    state.me = user;
   },
-  SET_TOKEN(state: AuthState, user: SystemUser) {
-    localStorage.setItem("authToken", JSON.stringify(user));
+  SET_TOKEN(state: AuthState, token: Token) {
+    localStorage.setItem("authToken", JSON.stringify(token));
   },
   GET_USER(state: AuthState): SystemUser | null {
     const user = localStorage.getItem("currentUser");
@@ -68,12 +71,14 @@ const actions = {
     dispatch("connectWebSocket");
   },
 
-  getMe({commit}: ActionContext<AuthState, RootState>) {
+  getMe({commit, dispatch}: ActionContext<AuthState, RootState>) {
     return Api.getMe()
       .then((res) => {
         commit("SET_USER", res.data);
+        dispatch("connectWebSocket");
       })
       .catch((err) => {
+        console.log("getMe.err: ", err)
         commit("CLEAR_USER");
         throw err;
       });
@@ -94,9 +99,7 @@ const actions = {
     const access_token = JSON.parse(token).access_token;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}?token=${access_token}`);
     ws.onopen = () => {
-      setInterval(() => {
-        ws.send(JSON.stringify({type: EventType.PING}));
-      }, 2000)
+      ws.send(JSON.stringify({type: EventType.PING}));
     };
 
     ws.onmessage = (event) => {
@@ -105,6 +108,9 @@ const actions = {
         switch (data.type) {
           case EventType.MESSAGE:
             eventBus.emit(EventType.MESSAGE, data);
+            break;
+          case EventType.UPDATE_READERS:
+            eventBus.emit(EventType.UPDATE_READERS, data);
             break;
           default:
             console.log("UD", event)

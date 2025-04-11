@@ -1,0 +1,23 @@
+.gitignore
+Makefile
+pytest.ini
+README.md
+docker
+local
+.pytest_cache
+frontend
+.env
+*.db*
+*.back
+.idea
+
+docker-compose.app.yaml
+dump.json
+# parcel
+.cache
+
+# env
+.DS_Store
+
+ui/
+*.log
