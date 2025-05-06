@@ -40,12 +40,6 @@
               v-model="chatName"
               required
             />
-            <v-select
-              label="Тип чата"
-              :items="['GROUP']"
-              v-model="chatType"
-              required
-            />
             <div v-if="errorMessage" class="error mt-2">{{ errorMessage }}</div>
           </v-card-text>
           <v-card-actions>
@@ -73,7 +67,6 @@ const loading = ref(false);
 const selected = ref<string[]>([]);
 const dialog = ref(false);
 const chatName = ref('');
-const chatType = ref('GROUP');
 const errorMessage = ref('');
 const users = computed(() => store.getters['users/users']);
 const myChats = computed(() => store.getters['chats/myChats']);
@@ -113,15 +106,12 @@ const createChat = async () => {
   try {
     const response = await store.dispatch('chats/createChat', {
       chat_name: chatName.value,
-      chat_type: chatType.value,
+      chat_type: 'GROUP',
       participants,
     });
 
     if (response?.id) {
       await store.dispatch('chats/fetchMyChats');
-      dialog.value = false;
-      chatName.value = '';
-      chatType.value = 'GROUP';
       openChat(response.id);
     } else {
       errorMessage.value = 'Ошибка создания чата';

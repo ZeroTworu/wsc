@@ -16,11 +16,8 @@
           class="mb-4 d-flex align-center"
         >
           <v-progress-circular indeterminate size="20" class="mr-2" />
-          Соединение потеряно...
+          Соединение потеряно, переподключаемся...
           <v-spacer />
-          <v-btn small @click="reconnectWebSocket" color="primary" variant="text">
-            Переподключиться
-          </v-btn>
         </v-alert>
 
         <div v-for="(msg, index) in messages" :key="index" class="message">
@@ -98,19 +95,9 @@ const chat = computed(() => store.getters['chats/chatById'](chatId));
 const unreadMessageIds = ref<Set<string>>(new Set());
 
 const isWsConnected = computed(() => {
-  return ws.value && ws.value.readyState === WebSocket.OPEN;
+  return ws.value !== null && ws.value.readyState === WebSocket.OPEN;
 });
 
-const reconnectWebSocket = () => {
-  if (ws.value) {
-    try {
-      ws.value.close();
-    } catch (e) {
-      console.warn('Ошибка при закрытии WebSocket:', e);
-    }
-  }
-  store.dispatch('auth/connectWebSocket');
-};
 
 const sendMessage = () => {
   if (!isWsConnected.value || !newMessage.value.trim()) return;

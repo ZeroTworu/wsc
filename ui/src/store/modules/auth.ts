@@ -84,22 +84,18 @@ const actions = {
       });
   },
 
-  isCurrentUser({state}: ActionContext<AuthState, RootState>): boolean {
-    return state.me !== null;
-  },
-
-  exit({commit}: ActionContext<AuthState, RootState>) {
-    commit("CLEAR_USER");
-  },
-
   connectWebSocket({commit, dispatch, state}: ActionContext<AuthState, RootState>) {
-    if (state.ws) return;
+    if (state.ws !== null && state.ws.readyState === WebSocket.OPEN) return;
     const token = localStorage.getItem("authToken") || "{}";
     if (!token) return;
+    let reconnectInterval1: number, reconnectInterval2: number;
     const access_token = JSON.parse(token).access_token;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}?token=${access_token}`);
     ws.onopen = () => {
       ws.send(JSON.stringify({type: EventType.PING}));
+      commit("SET_WS", ws);
+      if (reconnectInterval1 !== null) clearInterval(reconnectInterval1);
+      if (reconnectInterval2 !== null) clearInterval(reconnectInterval2);
     };
 
     ws.onmessage = (event) => {
@@ -124,12 +120,12 @@ const actions = {
     ws.onerror = (error) => {
       console.error("ws.onerror:", error);
       commit("SET_WS", null);
-      setTimeout(() => dispatch("connectWebSocket"), 1000);
+      reconnectInterval1 = setInterval(() => dispatch("connectWebSocket"), 100);
     };
 
     ws.onclose = () => {
       commit("SET_WS", null);
-      setTimeout(() => dispatch("connectWebSocket"), 1000);
+      reconnectInterval2 = setInterval(() => dispatch("connectWebSocket"), 100);
     };
 
     commit("SET_WS", ws);
