@@ -1,0 +1,23 @@
+version: "3"
+services:
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d db" ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+  app:
+    image: hanyuu/ws:1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      WS_DATA_BASE_DSN: "postgresql+asyncpg://postgres:password@postgres:5432/db"
+      WS_SECRET_KEY: "dsgfljkshglkdshge5o8iguyh89po45gvhrlkjdu"
+    ports:
+      - "8000:8000"

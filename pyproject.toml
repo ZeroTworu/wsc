@@ -5,7 +5,7 @@ description = ""
 authors = [
     {name = "Zero Two",email = "hau.au.999@gmail.com"}
 ]
-readme = "README.md"
+
 # Такой странный паттерн - для установки wemake-python-styleguide
 requires-python = "<4.0,>=3.10"
 dependencies = [

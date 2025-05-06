@@ -19,5 +19,6 @@ dump.json
 # env
 .DS_Store
 
-ui/
+ui/node_modules
+
 *.log

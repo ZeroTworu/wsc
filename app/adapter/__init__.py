@@ -10,3 +10,7 @@ _adapter: 'DataBaseAdapter' = DataBaseAdapter()
 
 async def get_database_adapter() -> 'AsyncGenerator[DataBaseAdapter, None]':
     yield _adapter
+
+
+def get_database_sync_adapter() -> 'DataBaseAdapter':
+    return _adapter

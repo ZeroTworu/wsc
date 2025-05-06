@@ -49,23 +49,26 @@
           <v-text-field
             v-model="regUsername"
             label="Логин"
+            :rules="[v => !!v || 'Обязательное поле']"
             required
           />
           <v-text-field
             v-model="regEmail"
             label="Email"
+            :rules="emailRules"
             required
             type="email"
           />
           <v-text-field
             v-model="regPassword"
             label="Пароль"
+            :rules="[v => !!v || 'Обязательное поле']"
             required
             type="password"
           />
         </v-card-text>
         <v-card-actions>
-          <v-spacer />
+          <v-spacer/>
           <v-btn color="primary" @click="register">Зарегистрироваться</v-btn>
           <v-btn text @click="showRegister = false">Отмена</v-btn>
         </v-card-actions>
@@ -75,9 +78,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref} from "vue";
-import { useStore } from "vuex";
-import { useRouter } from "vue-router";
+import {ref, computed} from "vue";
+import {useStore} from "vuex";
+import {useRouter} from "vue-router";
 
 const store = useStore();
 const router = useRouter();
@@ -92,6 +95,11 @@ const regUsername = ref("");
 const regEmail = ref("");
 const regPassword = ref("");
 
+const emailRules = computed(() => [
+  value => !!value || 'Обязательное поле',
+  value => /.+@.+\..+/.test(value) || 'E-mail должен быть валидным'
+])
+
 const enter = async () => {
   loginError.value = false;
   loading.value = true;
@@ -104,7 +112,7 @@ const enter = async () => {
   try {
     await store.dispatch("auth/login", payload);
     await store.dispatch("auth/getMe"); // для отображения панели навигации
-    router.push({ name: "home" });
+    router.push({name: "home"});
   } catch (err) {
     console.error("Auth error:", err);
     loginError.value = true;

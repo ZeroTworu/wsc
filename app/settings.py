@@ -6,11 +6,11 @@ try:
 except ModuleNotFoundError:
     pass
 
-WS_DATA_BASE_DSN: 'str' = getenv('WS_DATA_BASE_DSN')
+WS_DATA_BASE_DSN: 'str' = getenv('WS_DATA_BASE_DSN', None)
 
 WS_DATA_BASE_ECHO: 'bool' = getenv('WS_DATA_BASE_ECHO', 'on') == 'on'
 
-WS_SECRET_KEY: 'str' = getenv('WS_DATA_BASE_ECHO', None)
+WS_SECRET_KEY: 'str' = getenv('WS_SECRET_KEY', None)
 
 WS_ALGORITHM = getenv('WS_ALGORITHM', 'HS256')
 
