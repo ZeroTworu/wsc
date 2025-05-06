@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncSession, async_sessionmaker, create_async_engine,
@@ -28,13 +29,11 @@ class DataBaseAdapter(UserAdapter, ChatAdapter, MessageAdapter):
         self._engine = create_async_engine(WS_DATA_BASE_DSN, echo=WS_DATA_BASE_ECHO, future=True)
         self._sc = async_sessionmaker(self._engine, expire_on_commit=False)
 
-
-
     def get_session(self) -> 'async_sessionmaker[AsyncSession]':
         return self._sc
 
     async def init_data(self):
-       async with self._sc() as session:
+        async with self._sc() as session:
             async with session.begin():
                 result = await session.execute(select(User))
                 if result.scalars().first() is None:

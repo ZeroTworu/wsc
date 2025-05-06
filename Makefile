@@ -1,4 +1,4 @@
-.PHONY: lint isort infra app
+.PHONY: lint isort infra app up
 
 lint:
 	poetry run flake8 app/
@@ -11,3 +11,7 @@ infra:
 
 app:
 	uvicorn  app.http.app:app --reload
+
+up:
+	docker build . -t hanyuu/ws:1 && \
+	docker-compose up
