@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from starlette import status
 
 from app.adapter.dto.chat import ChatDto
-from app.adapter.store.models import Chat, chat_participants
+from app.adapter.store.models import Chat, chat_participants, User
 
 if TYPE_CHECKING:
     from typing import List
@@ -99,3 +99,24 @@ class ChatAdapter:
 
             if (chat := result.scalar_one_or_none()) is not None:  # noqa: WPS332
                 return ChatDto.model_validate(chat, from_attributes=True)
+
+    async def leave_chat(self: 'DataBaseAdapter', chat_id: 'UUID', user_id: 'UUID') -> 'bool':
+        async with self._sc() as session:
+            chat = await session.get(Chat, chat_id)
+            user = await session.get(User, user_id)
+
+            if chat is None or user is None:
+                return False
+
+            if user not in chat.participants:
+                return False
+
+            if chat.owner_id == user_id:
+                chat.participants.clear()
+                await session.delete(chat)
+                await session.commit()
+                return True
+
+            chat.participants.remove(user)
+            await session.commit()
+            return True

@@ -41,3 +41,12 @@ async def chat_history(
     current_user: 'UserDto' = Depends(auth_http),
 ) -> 'List[ChatMessageDto]':
     return await adapter.get_chat_messages_by_chat_and_user_id(chat_id, current_user.user_id, offset, limit)
+
+
+@chat_rout.delete('/leave/{chat_id}')
+async def leave_chat(
+    chat_id: 'UUID',
+    adapter: 'DataBaseAdapter' = Depends(get_database_adapter),
+    current_user: 'UserDto' = Depends(auth_http),
+) -> 'bool':
+    return await adapter.leave_chat(chat_id, current_user.user_id)

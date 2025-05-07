@@ -17,3 +17,5 @@ WS_ALGORITHM = getenv('WS_ALGORITHM', 'HS256')
 WS_ACCESS_TOKEN_EXPIRE_MINUTES = int(getenv('WS_ACCESS_TOKEN_EXPIRE_MINUTES', 60 * 24 * 7)) # неделя по дефолту
 
 WS_LOG_LEVEL = getenv('WS_LOG_LEVEL', 'INFO')
+
+WS_SELF_STATIC = getenv('WS_SELF_STATIC', 'off') == 'on'

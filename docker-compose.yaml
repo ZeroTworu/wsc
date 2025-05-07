@@ -19,5 +19,6 @@ services:
     environment:
       WS_DATA_BASE_DSN: "postgresql+asyncpg://postgres:password@postgres:5432/db"
       WS_SECRET_KEY: "dsgfljkshglkdshge5o8iguyh89po45gvhrlkjdu"
+      WS_SELF_STATIC: "on"
     ports:
       - "8000:8000"

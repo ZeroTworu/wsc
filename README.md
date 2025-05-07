@@ -11,6 +11,7 @@
 | WS_DATA_BASE_DSN               | DB URL вида `postgresql+asyncpg://postgres:password@127.0.0.1:5557/db` | +        |          |
 | WS_SECRET_KEY                  | Ключ шифроывния JWT                                                    | +        |          |
 | WS_DATA_BASE_ECHO              | Подробное логирование запросов                                         | -        | `on`     |
+| WS_SELF_STATIC                 | Включает отправку статики                                              | -        | `off`    |
 | WS_ALGORITHM                   | Алгоритм шифрования JWT                                                | -        | `HS256`  |
 | WS_ACCESS_TOKEN_EXPIRE_MINUTES | Сколько живёт JWT в минутах                                            | -        | `неделя` |
 | WS_LOG_LEVEL                   | Уровень логирования                                                    | -        | `info`   |

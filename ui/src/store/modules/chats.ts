@@ -43,6 +43,12 @@ const mutations = {
   ADD_CHAT(state: ChatsState, chat: Chat) {
     state.myChats.push(chat);
   },
+  REMOVE_CHAT(state: ChatsState, chat_id: string): ChatsState {
+  return {
+    ...state,
+    myChats: state.myChats.filter(chat => chat.id !== chat_id)
+  };
+},
 };
 
 const actions = {
@@ -54,13 +60,14 @@ const actions = {
     const response = await Api.getAllChats();
     commit('SET_ALL_CHATS', response.data);
   },
-  async createChat(
-    { commit }: ActionContext<ChatsState, RootState>,
-    payload: CreateChatPayload
-  ) {
+  async createChat({ commit }: ActionContext<ChatsState, RootState>, payload: CreateChatPayload) {
     const { data } = await Api.createChat(payload);
     commit('ADD_CHAT', data);
     return data
+  },
+  async leaveChat({ commit }: ActionContext<ChatsState, RootState>, chat_id: string) {
+    await Api.leaveChat(chat_id);
+    commit('REMOVE_CHAT', chat_id);
   },
 };
 

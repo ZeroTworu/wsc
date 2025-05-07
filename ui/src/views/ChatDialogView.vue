@@ -4,7 +4,7 @@
       <v-toolbar flat color="white">
         <v-toolbar-title>Чат: {{ chat.chat_name }}</v-toolbar-title>
         <v-spacer />
-        <v-btn @click="router.push({name: 'home'})" color="error">Покинуть чат</v-btn>
+        <v-btn @click="leaveChat()" color="error">Покинуть чат</v-btn>
       </v-toolbar>
 
       <v-card-text class="chat-window">
@@ -98,6 +98,10 @@ const isWsConnected = computed(() => {
   return ws.value !== null && ws.value.readyState === WebSocket.OPEN;
 });
 
+const leaveChat = async () => {
+  await store.dispatch('chats/leaveChat', chatId);
+  router.push({name: 'home'});
+}
 
 const sendMessage = () => {
   if (!isWsConnected.value || !newMessage.value.trim()) return;
@@ -130,7 +134,6 @@ const handleMessage = (event: any) => {
 };
 
 const handleUpdateReaders = (event: any) => {
-    console.log(event);
     const msg = messages.value.find(m => m.id === event.message_id);
     if (msg) {
       msg.readers = event.readers;

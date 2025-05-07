@@ -9,6 +9,7 @@ from app.http.api.auth import auth_rout
 from app.http.api.chat import chat_rout
 from app.http.api.user import users_rout
 from app.http.api.websocket import ws_rout
+from app.settings import WS_SELF_STATIC
 
 
 @asynccontextmanager
@@ -33,4 +34,5 @@ app.include_router(auth_rout)
 app.include_router(users_rout)
 app.include_router(chat_rout)
 
-app.mount('/', StaticFiles(directory='dist', html=True), name='frontend')
+if WS_SELF_STATIC:
+    app.mount('/', StaticFiles(directory='dist', html=True), name='frontend')

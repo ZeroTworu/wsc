@@ -37,6 +37,10 @@ export class Api {
     }
 
     static getHistory(chat_id: string, limit=50, offset=0) {
-        return axios.get(`/auth/chat/history/${chat_id}?limit=${limit}&offset=${offset}`);
+        return axios.get(`/api/chat/history/${chat_id}?limit=${limit}&offset=${offset}`);
+    }
+
+    static leaveChat(chat_id: string) {
+        return axios.delete(`/api/chat/leave/${chat_id}`);
     }
 }
