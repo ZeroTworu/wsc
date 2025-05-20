@@ -5,7 +5,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 from starlette import status
 
-from app.adapter.dto.chat import ChatMessageCreateDto, ChatMessageDto
+from app.adapter.dto.chat import ChatMessageCreateDto, ChatMessageDto, ChatHistoryMessageDto
 from app.adapter.store.models import Chat, Message, User, chat_participants
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ class MessageAdapter:
             user_id: 'UUID',
             offset: int = 0,
             limit: int = 5,
-    ) -> 'List[ChatMessageDto]':
+    ) -> 'List[ChatHistoryMessageDto]':
         async with self._sc() as session:
             is_participant_subquery = select(chat_participants.c.chat_id).where(
                 and_(
@@ -55,6 +55,7 @@ class MessageAdapter:
                 .join(Chat)
                 .options(
                     selectinload(Message.readers),
+                    selectinload(Message.sender),
                     selectinload(Message.chat).selectinload(Chat.participants),
                 )
                 .where(
@@ -70,7 +71,7 @@ class MessageAdapter:
 
             result = await session.execute(query)
             messages = result.scalars().all()
-            return [ChatMessageDto.model_validate(msg) for msg in messages]
+            return [ChatHistoryMessageDto.model_validate(msg) for msg in messages]
 
     async def add_reader(
         self: 'DataBaseAdapter',

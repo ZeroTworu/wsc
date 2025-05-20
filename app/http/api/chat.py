@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 
 from app.adapter import get_database_adapter
 from app.adapter.dto.chat import (
-    ChatCreateDto, ChatDto, ChatMessageDto, UserDto,
+    ChatCreateDto, ChatDto, ChatHistoryMessageResponse, UserDto,
 )
 from app.http.api.auth import auth_http
 
@@ -32,14 +32,14 @@ async def my_chats(
     return await adapter.get_my_chats(user_id=user.user_id)
 
 
-@chat_rout.get('/history/{chat_id}', response_model=List[ChatMessageDto])
+@chat_rout.get('/history/{chat_id}', response_model=List[ChatHistoryMessageResponse])
 async def chat_history(
     chat_id: 'UUID',
     offset: int = 0,
     limit: int = 5,
     adapter: 'DataBaseAdapter' = Depends(get_database_adapter),
     current_user: 'UserDto' = Depends(auth_http),
-) -> 'List[ChatMessageDto]':
+) -> 'List[ChatHistoryMessageResponse]':
     return await adapter.get_chat_messages_by_chat_and_user_id(chat_id, current_user.user_id, offset, limit)
 
 

@@ -72,6 +72,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { EventType } from "@/store/stats";
 import { eventBus } from "@/store/EventBus.ts";
+import { Api } from "@/api/api.ts";
 
 const store = useStore();
 const route = useRoute();
@@ -147,7 +148,6 @@ const handleUpdateReaders = (event: any) => {
 
 const sendReadUpdates = () => {
   if (!isWsConnected.value || unreadMessageIds.value.size === 0) return;
-  console.log(unreadMessageIds.value);
   for (const id of unreadMessageIds.value) {
     const readMsg = {
       type: EventType.UPDATE_READERS,
@@ -174,7 +174,18 @@ const hideReadersList = (index: number) => {
   messages.value[index].showReadersList = false;
 };
 
-onMounted(() => {
+onMounted(async () => {
+  const {data} = await Api.getHistory(chatId);
+  data.forEach((val: any) => {
+        const newMsg = {
+          id: val.message_id,
+          username: val.sender,
+          content: val.text,
+          readers: val.readers || [],
+          showReadersList: false,
+      };
+      messages.value.push(newMsg);
+  })
   eventBus.on(EventType.MESSAGE, handleMessage);
   eventBus.on(EventType.UPDATE_READERS, handleUpdateReaders);
   document.addEventListener('visibilitychange', onVisibilityChange);
