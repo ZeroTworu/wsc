@@ -2,6 +2,8 @@ version: "3"
 services:
   postgres:
     image: postgres
+    networks:
+      - backend
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -11,8 +13,11 @@ services:
       interval: 2s
       timeout: 2s
       retries: 10
+
   app:
-    image: hanyuu/ws:1
+    image: hanyuu/ws:2
+    networks:
+      - backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,3 +27,7 @@ services:
       WS_SELF_STATIC: "on"
     ports:
       - "8000:8000"
+
+networks:
+  backend:
+    driver: bridge
