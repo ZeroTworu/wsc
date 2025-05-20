@@ -127,8 +127,6 @@ const actions = {
       commit("SET_WS", null);
       reconnectInterval2 = setInterval(() => dispatch("connectWebSocket"), 100);
     };
-
-    commit("SET_WS", ws);
   },
 };
 

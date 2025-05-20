@@ -100,7 +100,7 @@ const isWsConnected = computed(() => {
 
 const leaveChat = async () => {
   await store.dispatch('chats/leaveChat', chatId);
-  router.push({name: 'home'});
+  await router.push({name: 'home'});
 }
 
 const sendMessage = () => {
