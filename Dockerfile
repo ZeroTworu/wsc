@@ -3,7 +3,19 @@ FROM node:20 AS frontend
 WORKDIR /app
 COPY ui/ ./
 
-RUN yarn install
+RUN yarn install --frozen-lockfile
+
+RUN yarn global add vite
+
+ARG VITE_API_BASE_URL
+ARG VITE_WS_URL
+
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+
+RUN echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" > .env && \
+    echo "VITE_WS_URL=$VITE_WS_URL" >> .env
+
 RUN yarn build-only
 
 FROM python:3.13 AS backend
