@@ -13,5 +13,4 @@ app:
 	uvicorn  app.http.app:app --reload
 
 up:
-	docker build . -t hanyuu/ws:1 && \
-	docker-compose up
+	docker-compose up --pull always --force-recreate
