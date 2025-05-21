@@ -39,3 +39,10 @@
 | `guest2` | `pass3` |
 
 * То что ник `admin` ни чего не значит, системы прав нету.
+
+
+### Скриншоты
+![chat](.assets/chat_one.png)
+
+
+![chat](.assets/chat_two.png)
