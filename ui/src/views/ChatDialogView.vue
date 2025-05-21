@@ -7,7 +7,7 @@
         <v-btn @click="leaveChat()" color="error">Покинуть чат</v-btn>
       </v-toolbar>
 
-      <v-card-text class="chat-window">
+      <v-card-text ref="chatWindow" class="chat-window">
         <v-alert
           v-if="!isWsConnected"
           type="info"
@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue';
+import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { EventType } from "@/store/stats";
@@ -66,15 +66,28 @@ const user = computed(() => store.getters['auth/me']);
 const chat = computed(() => store.getters['chats/chatById'](chatId));
 const messages = computed(() => store.getters['messages/messagesByChat'](chatId));
 const unreadMessageIds = computed(() => store.getters['messages/unreadMessageIdsByChatId'](chatId));
-
+const chatWindow = ref<HTMLElement | null>(null);
 const isWsConnected = computed(() => {
   return ws.value !== null && ws.value.readyState === WebSocket.OPEN;
 });
+
+watch(
+  () => messages.value.length,
+  (newLength, oldLength) => {
+    if (newLength > oldLength) {
+      scrollToBottom('smooth');
+    }
+  }
+);
 
 const leaveChat = async () => {
   await store.dispatch('chats/leaveChat', chatId);
   await router.push({name: 'home'});
 }
+
+const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+
+};
 
 const sendMessage = () => {
   if (!isWsConnected.value || !newMessage.value.trim()) return;
@@ -107,8 +120,9 @@ const onVisibilityChange = () => {
   }
 };
 
-onMounted(async () => {
+onMounted(() => {
   store.dispatch("messages/loadHistory", chatId);
+  scrollToBottom();
   document.addEventListener('visibilitychange', onVisibilityChange);
   window.addEventListener('focus', onVisibilityChange);
 });
@@ -125,19 +139,10 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   background-color: #f9f9f9;
   padding: 16px;
+  scroll-behavior: smooth;
 }
 
 .message {
   margin-bottom: 10px;
-}
-
-.read-status {
-  position: relative;
-  display: inline-block;
-  margin-left: 8px;
-}
-
-.read-checks {
-  color: #4caf50;
 }
 </style>

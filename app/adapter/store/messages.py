@@ -1,14 +1,17 @@
 from typing import TYPE_CHECKING
 
 from fastapi import WebSocketException
-from sqlalchemy import and_, or_, select
+from sqlalchemy import exists, func, literal, or_, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import selectinload
 from starlette import status
 
 from app.adapter.dto.chat import (
     ChatHistoryMessageDto, ChatMessageCreateDto, ChatMessageDto,
 )
-from app.adapter.store.models import Chat, Message, User, chat_participants
+from app.adapter.store.models import (
+    Chat, Message, User, chat_participants, messages_read,
+)
 
 if TYPE_CHECKING:
     from typing import List
@@ -19,8 +22,8 @@ if TYPE_CHECKING:
 
 class MessageAdapter:
     async def save_message(
-        self: 'DataBaseAdapter',
-        msg: 'ChatMessageCreateDto',
+            self: 'DataBaseAdapter',
+            msg: 'ChatMessageCreateDto',
     ) -> 'ChatMessageDto':
         async with self._sc() as session:
             m_message = Message(
@@ -37,7 +40,7 @@ class MessageAdapter:
 
             return ChatMessageDto.model_validate(m_message)
 
-    async def get_chat_messages_by_chat_and_user_id(
+    async def get_messages_by_chat_and_user_id(
             self: 'DataBaseAdapter',
             chat_id: 'UUID',
             user_id: 'UUID',
@@ -45,41 +48,56 @@ class MessageAdapter:
             limit: int = 5,
     ) -> 'List[ChatHistoryMessageDto]':
         async with self._sc() as session:
-            is_participant_subquery = select(chat_participants.c.chat_id).where(
-                and_(
-                    chat_participants.c.chat_id == chat_id,
-                    chat_participants.c.user_id == user_id
-                )
-            ).exists()
-
-            query = (
-                select(Message)
+            message_ids_subq = (
+                select(Message.id)
                 .join(Chat)
-                .options(
-                    selectinload(Message.readers),
-                    selectinload(Message.sender),
-                    selectinload(Message.chat).selectinload(Chat.participants),
-                )
                 .where(
                     Message.chat_id == chat_id,
                     or_(
                         Chat.owner_id == user_id,
-                        is_participant_subquery
+                        exists().where(
+                            chat_participants.c.chat_id == chat_id,
+                            chat_participants.c.user_id == user_id
+                        )
                     )
                 )
                 .offset(offset)
                 .limit(limit)
+                .subquery()
             )
+
+            stmt = insert(messages_read).from_select(
+                ['message_id', 'user_id'],
+                select(
+                    message_ids_subq.c.id,
+                    literal(user_id)
+                )
+            )
+
+            stmt = stmt.on_conflict_do_update(
+                index_elements=['message_id', 'user_id'],
+                set_=dict(user_id=user_id)
+            )
+
+            await session.execute(stmt)
+            await session.commit()
+
+            query = (
+                select(Message).options(
+                    selectinload(Message.readers),
+                    selectinload(Message.sender),
+                    selectinload(Message.chat).selectinload(Chat.participants),
+                ).where(Message.id.in_(select(message_ids_subq.c.id))))
 
             result = await session.execute(query)
             messages = result.scalars().all()
             return [ChatHistoryMessageDto.model_validate(msg) for msg in messages]
 
     async def add_reader(
-        self: 'DataBaseAdapter',
-        chat_id: 'UUID',
-        message_id: 'UUID',
-        user_id: 'UUID',
+            self: 'DataBaseAdapter',
+            chat_id: 'UUID',
+            message_id: 'UUID',
+            user_id: 'UUID',
     ) -> 'ChatMessageDto':
         async with self._sc() as session:
             stmt = (

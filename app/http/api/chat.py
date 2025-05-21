@@ -40,7 +40,7 @@ async def chat_history(
     adapter: 'DataBaseAdapter' = Depends(get_database_adapter),
     current_user: 'UserDto' = Depends(auth_http),
 ) -> List[ChatHistoryMessageResponse]:
-    messages = await adapter.get_chat_messages_by_chat_and_user_id(
+    messages = await adapter.get_messages_by_chat_and_user_id(
         chat_id,
         current_user.user_id,
         offset,
