@@ -21,7 +21,10 @@
         </v-alert>
 
         <div v-for="(msg, index) in messages" :key="index" class="message">
-          <MessageItem :msg="msg" />
+          <MessageItem
+            :msg="msg"
+            :is-own-message="msg.user_id === user.user_id"
+          />
         </div>
       </v-card-text>
 

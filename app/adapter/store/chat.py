@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from starlette import status
 
 from app.adapter.dto.chat import ChatDto
-from app.adapter.store.models import Chat, chat_participants, User
+from app.adapter.store.models import Chat, User, chat_participants
 
 if TYPE_CHECKING:
     from typing import List

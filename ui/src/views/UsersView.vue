@@ -39,6 +39,7 @@
               label="Название чата"
               v-model="chatName"
               required
+              @keyup.enter="createChat"
             />
             <div v-if="errorMessage" class="error mt-2">{{ errorMessage }}</div>
           </v-card-text>

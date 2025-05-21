@@ -36,7 +36,7 @@ async def disconnect_user(user: 'UserDto', websocket: 'WebSocket'):
 async def broadcast_to_user(wse: WebSocketEvent, user_id: UUID):
     exclude = {
         'ws': True,
-        'user': {'user_id', 'email'},
+        'user': {'email'},
     }
     payload = wse.model_dump_json(exclude=exclude)
     coroutines = [conn.send_text(payload) for conn in active_connections.get(user_id, [])]
@@ -58,6 +58,8 @@ async def broadcast_new_message(wse: WebSocketEvent, adapter: DataBaseAdapter):
     )
     wse.message_id = saved_message.message_id
     wse.user_id = saved_message.sender_id
+    wse.created_at = saved_message.created_at
+    wse.updated_at = saved_message.updated_at
 
     coroutines = [broadcast_to_user(wse, user.user_id) for user in chat.participants]
     await gather(*coroutines)

@@ -5,7 +5,9 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 from starlette import status
 
-from app.adapter.dto.chat import ChatMessageCreateDto, ChatMessageDto, ChatHistoryMessageDto
+from app.adapter.dto.chat import (
+    ChatHistoryMessageDto, ChatMessageCreateDto, ChatMessageDto,
+)
 from app.adapter.store.models import Chat, Message, User, chat_participants
 
 if TYPE_CHECKING:
@@ -19,7 +21,7 @@ class MessageAdapter:
     async def save_message(
         self: 'DataBaseAdapter',
         msg: 'ChatMessageCreateDto',
-    ) -> 'ChatMessageCreateDto':
+    ) -> 'ChatMessageDto':
         async with self._sc() as session:
             m_message = Message(
                 sender_id=msg.sender_id,
@@ -30,7 +32,7 @@ class MessageAdapter:
             await session.commit()
             await session.refresh(
                 m_message,
-                attribute_names=['readers'],
+                attribute_names=['readers', 'created_at', 'updated_at'],
             )
 
             return ChatMessageDto.model_validate(m_message)

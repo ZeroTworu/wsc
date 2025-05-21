@@ -1,19 +1,23 @@
 import type {Module, ActionContext} from 'vuex';
+import dayjs from 'dayjs'
 import store, {type RootState} from '@/store';
 import {Api} from '@/api/api';
 import {EventType} from "@/store/stats";
+import {type User} from "@/store/modules/auth";
 
 export type Message = {
-  username: string;
+  user: User;
   content: string;
-  readers: any[];
+  readers: User[];
   showReadersList: boolean;
+  created_at: string;
+  updated_at: string;
   id: string;
 }
 
 export interface MessageState {
   messages: { [id: string]: Message[] };
-  unreadMessageIds: {[id: string]: Set<string>};
+  unreadMessageIds: { [id: string]: Set<string> };
   ws: WebSocket | null;
 }
 
@@ -68,22 +72,29 @@ const actions = {
         switch (data.type) {
           case EventType.MESSAGE:
             console.log(data);
+
             const newMsg = {
               id: data.message_id,
               username: data.user.username,
               content: data.message,
               readers: data.readers || [],
               showReadersList: false,
+              created_at: dayjs.unix(data.created_at).format("DD.MM.YYYY HH:mm:ss"),
+              updated_at: dayjs.unix(data.updated_at).format("DD.MM.YYYY HH:mm:ss"),
             };
+
             if (state.messages[data.chat_id] == null) {
               state.messages[data.chat_id] = [];
             }
+
             if (state.unreadMessageIds[data.chat_id] == null) {
-                  state.unreadMessageIds[data.chat_id] = new Set();
+              state.unreadMessageIds[data.chat_id] = new Set();
             }
+
             if (!newMsg.readers.find((r: any) => r.id === user.value.id)) {
               state.unreadMessageIds[data.chat_id].add(data.message_id);
             }
+
             state.messages[data.chat_id].push(newMsg);
             break;
           case EventType.UPDATE_READERS:
@@ -91,7 +102,7 @@ const actions = {
             if (msg) {
               msg.readers = data.readers;
               if (state.unreadMessageIds[data.chat_id] == null) {
-                  state.unreadMessageIds[data.chat_id] = new Set();
+                state.unreadMessageIds[data.chat_id] = new Set();
               }
               if (data.readers.some((r: any) => r.user_id === user.user_id)) {
                 state.unreadMessageIds[data.chat_id].delete(data.message_id);
@@ -123,10 +134,13 @@ const actions = {
     data.forEach((val: any) => {
       const newMsg = {
         id: val.message_id,
-        username: val.sender,
+        username: val.user.username,
+        user_id: val.user.user_id,
         content: val.text,
         readers: val.readers || [],
         showReadersList: false,
+        created_at: dayjs.unix(val.created_at).format("DD.MM.YYYY HH:mm:ss"),
+        updated_at: dayjs.unix(val.updated_at).format("DD.MM.YYYY HH:mm:ss"),
       };
       state.messages[chatId].push(newMsg);
     })

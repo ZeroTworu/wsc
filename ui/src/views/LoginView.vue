@@ -12,6 +12,7 @@
             label="Логин"
             required
             autocomplete="username"
+            @keyup.enter="enter"
           />
         </v-col>
       </v-row>
@@ -24,6 +25,7 @@
             type="password"
             required
             autocomplete="current-password"
+            @keyup.enter="enter"
           />
         </v-col>
       </v-row>

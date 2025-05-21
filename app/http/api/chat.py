@@ -39,8 +39,22 @@ async def chat_history(
     limit: int = 5,
     adapter: 'DataBaseAdapter' = Depends(get_database_adapter),
     current_user: 'UserDto' = Depends(auth_http),
-) -> 'List[ChatHistoryMessageResponse]':
-    return await adapter.get_chat_messages_by_chat_and_user_id(chat_id, current_user.user_id, offset, limit)
+) -> List[ChatHistoryMessageResponse]:
+    messages = await adapter.get_chat_messages_by_chat_and_user_id(
+        chat_id,
+        current_user.user_id,
+        offset,
+        limit
+    )
+
+    return [
+        ChatHistoryMessageResponse.model_validate({
+            **msg.model_dump(),
+            'user': msg.sender,
+            'readers': msg.readers
+        })
+        for msg in messages
+    ]
 
 
 @chat_rout.delete('/leave/{chat_id}')

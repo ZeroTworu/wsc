@@ -1,10 +1,13 @@
+from datetime import datetime
 from enum import Enum
 from typing import List
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel, ConfigDict, Field, field_serializer, field_validator,
+)
 
-from app.adapter.dto.user import UserDto
+from app.adapter.dto.user import UserDto, UserResponseDto
 
 
 class ChatType(Enum):
@@ -35,29 +38,47 @@ class ChatMessageDto(ChatMessageCreateDto):
     model_config = ConfigDict(from_attributes=True)
     message_id: UUID = Field(alias='id')
     readers: List[UserDto] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer('created_at', 'updated_at')
+    def serialize_dates(self, dt: datetime) -> int:
+        return int(dt.timestamp())
 
 
 class ChatHistoryMessageDto(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
     chat_id: UUID
     text: str
     sender: UserDto
+    created_at: datetime
+    updated_at: datetime
     message_id: UUID = Field(alias='id')
     readers: List[UserDto] = Field(default_factory=list)
 
 
 class ChatHistoryMessageResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        json_encoders={datetime: lambda dt: int(dt.timestamp())},
+    )
 
     chat_id: UUID
     text: str
-    sender: str
-    message_id: UUID
-    readers: List[UserDto] = Field(default_factory=list)
+    user: UserResponseDto
+    created_at: datetime
+    updated_at: datetime
+    message_id: UUID = Field(alias='id')
+    readers: List[UserResponseDto] = Field(default_factory=list)
 
-    @field_validator('sender', mode='before')
+    @field_validator('user', 'readers', mode='before')
     @classmethod
-    def extract_username(cls, value):
+    def convert_users(cls, value):
         if isinstance(value, UserDto):
-            return value.username  # Извлекаем username из UserDto
-        return value  # Если уже строка, оставляем как есть
+            return UserResponseDto.model_validate(value.model_dump())
+        if isinstance(value, list):
+            return [UserResponseDto.model_validate(u.model_dump()) for u in value]
+        return value

@@ -8,6 +8,11 @@ export type SystemUser = {
   email: string;
 };
 
+export type User = {
+  user_id: string;
+  username: string;
+};
+
 export type Token = {
   access_token: string,
   token_type: string,
