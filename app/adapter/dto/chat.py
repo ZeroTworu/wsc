@@ -80,5 +80,5 @@ class ChatHistoryMessageResponse(BaseModel):
         if isinstance(value, UserDto):
             return UserResponseDto.model_validate(value.model_dump())
         if isinstance(value, list):
-            return [UserResponseDto.model_validate(u.model_dump()) for u in value]
+            return [UserResponseDto.model_validate(u.model_dump()) for u in value]  # noqa: WPS111
         return value

@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from fastapi import WebSocketException
-from sqlalchemy import exists, func, literal, or_, select
+from sqlalchemy import exists, literal, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import selectinload
 from starlette import status
@@ -72,9 +72,7 @@ class MessageAdapter:
                     message_ids_subq.c.id,
                     literal(user_id)
                 )
-            )
-
-            stmt = stmt.on_conflict_do_update(
+            ).on_conflict_do_update(
                 index_elements=['message_id', 'user_id'],
                 set_=dict(user_id=user_id)
             )
@@ -90,8 +88,7 @@ class MessageAdapter:
                 ).where(Message.id.in_(select(message_ids_subq.c.id))))
 
             result = await session.execute(query)
-            messages = result.scalars().all()
-            return [ChatHistoryMessageDto.model_validate(msg) for msg in messages]
+            return [ChatHistoryMessageDto.model_validate(msg) for msg in result.scalars().all()]
 
     async def add_reader(
             self: 'DataBaseAdapter',
