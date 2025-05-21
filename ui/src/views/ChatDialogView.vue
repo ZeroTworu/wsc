@@ -21,29 +21,7 @@
         </v-alert>
 
         <div v-for="(msg, index) in messages" :key="index" class="message">
-          <strong>{{ msg.username }}:</strong> {{ msg.content }}
-          <div class="read-status" @mouseenter="showReadersList(index)" @mouseleave="hideReadersList(index)">
-            <span v-if="msg.readers.length > 0" class="read-checks">
-              <v-icon>mdi-check</v-icon>
-              <v-icon v-if="msg.readers.length > 1">mdi-check</v-icon>
-            </span>
-            <span v-else class="read-checks">
-              <v-icon>mdi-check</v-icon>
-            </span>
-            <v-menu v-model="msg.showReadersList" activator="parent" offset-y>
-              <v-list>
-                <v-list-item
-                  v-for="reader in msg.readers.filter(r => r.user_id !== user.user_id)"
-                  :key="reader.user_id"
-                >
-                  <v-list-item-title>{{ reader.username }}</v-list-item-title>
-                </v-list-item>
-                <v-list-item v-if="msg.readers.length === 0 || msg.readers.every(r => r.user_id === user.user_id)">
-                  <v-list-item-title>Нет прочитавших</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-          </div>
+          <MessageItem :msg="msg" />
         </div>
       </v-card-text>
 
@@ -67,33 +45,24 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { EventType } from "@/store/stats";
-import { eventBus } from "@/store/EventBus.ts";
-import { Api } from "@/api/api.ts";
+import MessageItem from "@/components/MessageItem.vue";
 
 const store = useStore();
 const route = useRoute();
 const router = useRouter();
 
 const chatId = route.params.chat_id as string;
-const messages = ref<
-  {
-    username: string;
-    content: string;
-    readers: any[];
-    showReadersList: boolean;
-    id?: number;
-  }[]
->([]);
 
 const newMessage = ref('');
-const ws = computed(() => store.state.auth.ws);
+const ws = computed(() => store.state.messages.ws);
 const user = computed(() => store.getters['auth/me']);
 const chat = computed(() => store.getters['chats/chatById'](chatId));
-const unreadMessageIds = ref<Set<string>>(new Set());
+const messages = computed(() => store.getters['messages/messagesByChat'](chatId));
+const unreadMessageIds = computed(() => store.getters['messages/unreadMessageIdsByChatId'](chatId));
 
 const isWsConnected = computed(() => {
   return ws.value !== null && ws.value.readyState === WebSocket.OPEN;
@@ -115,37 +84,6 @@ const sendMessage = () => {
   newMessage.value = '';
 };
 
-const handleMessage = (event: any) => {
-  if (event.chat_id !== chatId) {
-    return;
-  }
-
-  const newMsg = {
-    id: event.message_id,
-    username: event.user.username,
-    content: event.message,
-    readers: event.readers || [],
-    showReadersList: false,
-  };
-  messages.value.push(newMsg);
-  if (!newMsg.readers.find((r: any) => r.id === user.value.id)) {
-    unreadMessageIds.value.add(event.message_id);
-  }
-
-};
-
-const handleUpdateReaders = (event: any) => {
-    const msg = messages.value.find(m => m.id === event.message_id);
-    if (msg) {
-      msg.readers = event.readers;
-
-      if (event.readers.some((r: any) => r.user_id === user.value.id)) {
-        unreadMessageIds.value.delete(event.message_id);
-      }
-    }
-
-};
-
 const sendReadUpdates = () => {
   if (!isWsConnected.value || unreadMessageIds.value.size === 0) return;
   for (const id of unreadMessageIds.value) {
@@ -157,7 +95,6 @@ const sendReadUpdates = () => {
     };
     ws.value?.send(JSON.stringify(readMsg));
   }
-
   unreadMessageIds.value.clear();
 };
 
@@ -167,36 +104,15 @@ const onVisibilityChange = () => {
   }
 };
 
-const showReadersList = (index: number) => {
-  messages.value[index].showReadersList = true;
-};
-const hideReadersList = (index: number) => {
-  messages.value[index].showReadersList = false;
-};
-
 onMounted(async () => {
-  const {data} = await Api.getHistory(chatId);
-  data.forEach((val: any) => {
-        const newMsg = {
-          id: val.message_id,
-          username: val.sender,
-          content: val.text,
-          readers: val.readers || [],
-          showReadersList: false,
-      };
-      messages.value.push(newMsg);
-  })
-  eventBus.on(EventType.MESSAGE, handleMessage);
-  eventBus.on(EventType.UPDATE_READERS, handleUpdateReaders);
+  store.dispatch("messages/loadHistory", chatId);
   document.addEventListener('visibilitychange', onVisibilityChange);
-  window.addEventListener('focus', onVisibilityChange)
+  window.addEventListener('focus', onVisibilityChange);
 });
 
 onBeforeUnmount(() => {
-  eventBus.off(EventType.MESSAGE, handleMessage);
-  eventBus.off(EventType.UPDATE_READERS, handleUpdateReaders);
   document.removeEventListener('visibilitychange', onVisibilityChange);
-  window.removeEventListener('focus', onVisibilityChange)
+  window.removeEventListener('focus', onVisibilityChange);
 });
 </script>
 
