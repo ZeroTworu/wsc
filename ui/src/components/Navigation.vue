@@ -38,7 +38,7 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, ref, watchEffect} from "vue";
+import {computed, onMounted, ref, watchEffect} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import {useStore} from "vuex";
 import { useTheme } from 'vuetify'
@@ -62,8 +62,16 @@ const goto = (path: string) => {
 };
 
 const toggleTheme = () => {
-  theme.global.name.value = isDark.value ? 'light' : 'dark'
+  theme.global.name.value = isDark.value ? 'light' : 'dark';
+  localStorage.setItem("ws_theme", theme.global.name.value);
 };
+
+onMounted(() => {
+  const locTheme = localStorage.getItem("ws_theme");
+  if (locTheme) {
+    theme.global.name.value = locTheme;
+  }
+})
 
 watchEffect(() => {
   activeItem.value = route.path;

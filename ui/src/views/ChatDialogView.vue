@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, onBeforeUnmount, ref, computed, watch} from 'vue';
+import {onMounted, onBeforeUnmount, ref, computed, watch, nextTick} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useStore} from 'vuex';
 import {EventType} from "@/store/stats";
@@ -73,9 +73,11 @@ const leaveChat = async () => {
   await router.push({name: 'home'});
 }
 
-const scrollToBottom = () => {
+const scrollToBottom = async () => {
   if (chatWindow.value) {
-    chatWindow.value.scrollTop = chatWindow.value.scrollHeight;
+    await nextTick();
+    const el = chatWindow.value.$el;
+    el.scrollTop = el.scrollHeight;
   }
 };
 
@@ -134,6 +136,7 @@ onBeforeUnmount(() => {
   color: rgba(var(--v-theme-on-surface), 0.87);
   border-radius: 4px;
   transition: background-color 0.3s ease;
+  overflow-x: hidden;
 }
 
 .theme--light .chat-window {

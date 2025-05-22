@@ -71,7 +71,6 @@ const chatName = ref('');
 const errorMessage = ref('');
 const users = computed(() => store.getters['users/users']);
 const myChats = computed(() => store.getters['chats/myChats']);
-const ws = computed(() => store.state.auth.ws);
 
 const headers = [
   { text: 'ID', value: 'user_id' },
@@ -85,7 +84,6 @@ const selectedUsers = computed(() =>
 );
 
 const openChat = (chatId: string) => {
-  console.log(chatId);
   router.push(`/chat/${chatId}`);
 };
 
@@ -107,7 +105,7 @@ const createChat = async () => {
   try {
     const response = await store.dispatch('chats/createChat', {
       chat_name: chatName.value,
-      chat_type: 'GROUP',
+      chat_type: ChatType.Group,
       participants,
     });
 
@@ -128,7 +126,6 @@ const startChat = async (user: User) => {
     openChat(existing.id);
     return;
   }
-  console.log(existing);
   try {
     const response = await store.dispatch('chats/createChat', {
       chat_name: `Чат с ${user.username}`,
@@ -154,7 +151,6 @@ const startGroupChat = () => {
 onMounted(async () => {
   loading.value = true;
   await store.dispatch('users/fetchUsers');
-  await store.dispatch('chats/fetchMyChats');
   loading.value = false;
 });
 </script>
