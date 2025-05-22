@@ -1,7 +1,7 @@
 <template>
   <v-container>
     <v-card>
-      <v-toolbar flat color="white">
+      <v-toolbar flat>
         <v-toolbar-title>Список чатов</v-toolbar-title>
         <v-spacer />
       </v-toolbar>
@@ -35,16 +35,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
-import { EventType } from '@/store/stats';
 
 const store = useStore();
 const router = useRouter();
 
 const chats = computed(() => store.getters['chats/myChats']);
-const ws = computed(() => store.getters['auth/me'] && store.state.auth.ws);
+const isWsConnected = computed(() => store.getters['messages/isWsConnected']);
 const loading = ref(false);
 
 const headers = [
@@ -55,25 +54,18 @@ const headers = [
 
 
 
-onMounted(async () => {
+onMounted(() => {
   loading.value = true;
-  await store.dispatch('chats/fetchMyChats');
+  store.dispatch('chats/fetchMyChats');
   loading.value = false;
 });
 
 const openChat = (chatId: string) => {
-  if (ws.value?.readyState === WebSocket.OPEN) {
-    ws.value.send(JSON.stringify({ type: EventType.USER_JOIN_CHAT, chat_id: chatId }));
+  if (isWsConnected.value) {
+    store.dispatch("messages/enterChat", chatId);
   }
   router.push(`/chat/${chatId}`);
 };
-
-onBeforeUnmount(() => {
-  const chatId = router.currentRoute.value.params.chat_id;
-  if (chatId && ws.value?.readyState === WebSocket.OPEN) {
-    ws.value.send(JSON.stringify({ type: EventType.USER_LEFT_CHAT, chat_id: chatId }));
-  }
-});
 </script>
 
 <style scoped>

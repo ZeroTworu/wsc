@@ -1,34 +1,23 @@
 <template>
   <v-container>
     <v-card>
-      <v-toolbar flat color="white">
+      <v-toolbar flat>
         <v-toolbar-title>Чат: {{ chat.chat_name }}</v-toolbar-title>
-        <v-spacer />
+        <v-spacer/>
         <v-btn @click="leaveChat()" color="error">Покинуть чат</v-btn>
       </v-toolbar>
 
       <v-card-text ref="chatWindow" class="chat-window">
-        <v-alert
-          v-if="!isWsConnected"
-          type="info"
-          border="start"
-          colored-border
-          class="mb-4 d-flex align-center"
-        >
-          <v-progress-circular indeterminate size="20" class="mr-2" />
-          Соединение потеряно, переподключаемся...
-          <v-spacer />
-        </v-alert>
-
-        <div v-for="(msg, index) in messages" :key="index" class="message">
-          <MessageItem
-            :msg="msg"
-            :is-own-message="msg.user_id === user.user_id"
-          />
-        </div>
+          <DisconnectAlert/>
+          <div v-for="(msg, index) in messages" :key="index" class="message">
+            <MessageItem
+              :msg="msg"
+              :is-own-message="msg.user_id === user.user_id"
+            />
+          </div>
       </v-card-text>
 
-      <v-divider />
+      <v-divider/>
 
       <v-card-actions>
         <v-text-field
@@ -48,11 +37,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useStore } from 'vuex';
-import { EventType } from "@/store/stats";
+import {onMounted, onBeforeUnmount, ref, computed, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {useStore} from 'vuex';
+import {EventType} from "@/store/stats";
 import MessageItem from "@/components/MessageItem.vue";
+import DisconnectAlert from "@/components/DisconnectAlert.vue";
 
 const store = useStore();
 const route = useRoute();
@@ -66,16 +56,14 @@ const user = computed(() => store.getters['auth/me']);
 const chat = computed(() => store.getters['chats/chatById'](chatId));
 const messages = computed(() => store.getters['messages/messagesByChat'](chatId));
 const unreadMessageIds = computed(() => store.getters['messages/unreadMessageIdsByChatId'](chatId));
+const isWsConnected = computed(() => store.getters['messages/isWsConnected']);
 const chatWindow = ref<HTMLElement | null>(null);
-const isWsConnected = computed(() => {
-  return ws.value !== null && ws.value.readyState === WebSocket.OPEN;
-});
 
 watch(
   () => messages.value.length,
   (newLength, oldLength) => {
     if (newLength > oldLength) {
-      scrollToBottom('smooth');
+      scrollToBottom();
     }
   }
 );
@@ -85,8 +73,10 @@ const leaveChat = async () => {
   await router.push({name: 'home'});
 }
 
-const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
-
+const scrollToBottom = () => {
+  if (chatWindow.value) {
+    chatWindow.value.scrollTop = chatWindow.value.scrollHeight;
+  }
 };
 
 const sendMessage = () => {
@@ -128,6 +118,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  store.dispatch("messages/exitChat", chatId);
   document.removeEventListener('visibilitychange', onVisibilityChange);
   window.removeEventListener('focus', onVisibilityChange);
 });
@@ -137,9 +128,20 @@ onBeforeUnmount(() => {
 .chat-window {
   height: 400px;
   overflow-y: auto;
-  background-color: #f9f9f9;
   padding: 16px;
   scroll-behavior: smooth;
+  background-color: rgba(var(--v-theme-surface), 0.7);
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.theme--light .chat-window {
+  background-color: #f9f9f9;
+}
+
+.theme--dark .chat-window {
+  background-color: rgba(var(--v-theme-surface-darken-1), 0.9);
 }
 
 .message {

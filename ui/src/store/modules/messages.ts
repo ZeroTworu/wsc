@@ -48,6 +48,9 @@ const getters = {
     state.unreadMessageIds[chatId] = new Set();
     return state.unreadMessageIds[chatId];
   },
+  isWsConnected: (state: MessageState) => () => {
+    return state.ws !== null && state.ws.readyState === WebSocket.OPEN;
+  },
 };
 
 const actions = {
@@ -76,6 +79,7 @@ const actions = {
             const newMsg = {
               id: data.message_id,
               username: data.user.username,
+              user_id: data.user.user_id,
               content: data.message,
               readers: data.readers || [],
               showReadersList: false,
@@ -145,7 +149,12 @@ const actions = {
       state.messages[chatId].push(newMsg);
     })
   },
-
+  enterChat({state}: ActionContext<MessageState, RootState>, chatId: string) {
+    state.ws.send(JSON.stringify({ type: EventType.USER_ENTER_CHAT, chat_id: chatId }));
+  },
+  exitChat({state}: ActionContext<MessageState, RootState>, chatId: string) {
+    state.ws.send(JSON.stringify({ type: EventType.USER_EXIT_CHAT, chat_id: chatId }));
+  }
 }
 
 export const messages: Module<MessageState, RootState> = {

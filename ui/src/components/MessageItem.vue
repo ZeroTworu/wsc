@@ -15,7 +15,7 @@
               <v-icon>mdi-check</v-icon>
             </span>
             <v-menu v-model="showReadersList" activator="parent" offset-y>
-              <v-list>
+              <v-list :color="isOwnMessage ? 'primary lighten-5' : 'grey lighten-5'">
                 <v-list-item
                   v-for="reader in filteredReaders"
                   :key="reader.user_id"
@@ -94,24 +94,22 @@ const hideMenu = () => {
   position: relative;
   word-break: break-word;
   line-height: 1.4;
-  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+  box-shadow: 0 1px 0.5px rgba(var(--v-shadow-key-umbra-color), 0.13);
 }
 
-/* Сообщения других пользователей */
 .message:not(.own-message) .message-content {
-  background: #ffffff;
+  background: rgb(var(--v-theme-secondary));
   border-radius: 0 8px 8px 8px;
 }
 
-/* Свои сообщения */
 .own-message .message-content {
-  background: #e2ffc7;
+  background: rgb(var(--v-theme-primary));
   border-radius: 8px 0 8px 8px;
 }
 
 .message-username {
   font-weight: 500;
-  color: #999;
+  color: rgba(var(--v-theme-on-surface), 0.6);
   font-size: 0.8rem;
   margin-bottom: 2px;
 }
@@ -124,7 +122,7 @@ const hideMenu = () => {
 }
 
 .message-time {
-  color: #667781;
+  color: rgba(var(--v-theme-on-surface), 0.38);
   font-size: 0.75rem;
   margin-right: 4px;
 }
@@ -135,14 +133,13 @@ const hideMenu = () => {
 }
 
 .read-checks {
-  color: #0086ff;
+  color: rgb(var(--v-theme-primary));
 }
 
 .read-checks .v-icon {
   font-size: 0.9rem;
 }
 
-/* Треугольник-указатель для чужих сообщений */
 .message:not(.own-message) .message-bubble::before {
   content: '';
   position: absolute;
@@ -152,10 +149,9 @@ const hideMenu = () => {
   height: 0;
   border-top: 0 solid transparent;
   border-bottom: 8px solid transparent;
-  border-right: 8px solid #ffffff;
+  border-right: 8px solid rgb(var(--v-theme-secondary));
 }
 
-/* Треугольник-указатель для своих сообщений */
 .own-message .message-bubble::after {
   content: '';
   position: absolute;
@@ -164,11 +160,10 @@ const hideMenu = () => {
   width: 0;
   height: 0;
   border-top: 8px solid transparent;
-  border-left: 8px solid #e2ffc7;
+  border-left: 8px solid rgb(var(--v-theme-primary));
   border-bottom: 0 solid transparent;
 }
 
-/* Анимация при наведении */
 .message-bubble:hover .message-content {
   filter: brightness(98%);
 }
@@ -177,10 +172,5 @@ const hideMenu = () => {
   display: inline-flex;
   gap: 2px;
   margin-left: 4px;
-}
-
-.read-checks .v-icon {
-  color: #0086ff;
-  font-size: 16px;
 }
 </style>

@@ -87,7 +87,7 @@ async def handle_ws_event(wse: WebSocketEvent, adapter: DataBaseAdapter):
             await broadcast_new_message(wse, adapter)
         case WebSocketEventType.UPDATE_READERS:
             await broadcast_update_readers(wse, adapter)
-        case _: _logger.info(f'Not handled {wse.type}')
+        case _: _logger.warning(f'Not handled {wse.type}')
 
 
 @ws_rout.websocket('/subscribe')
