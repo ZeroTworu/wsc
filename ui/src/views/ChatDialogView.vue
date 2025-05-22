@@ -9,6 +9,7 @@
 
       <v-card-text ref="chatWindow" class="chat-window">
           <DisconnectAlert/>
+          <SystemMessage/>
           <div v-for="(msg, index) in messages" :key="index" class="message">
             <MessageItem
               :msg="msg"
@@ -43,6 +44,7 @@ import {useStore} from 'vuex';
 import {EventType} from "@/store/stats";
 import MessageItem from "@/components/MessageItem.vue";
 import DisconnectAlert from "@/components/DisconnectAlert.vue";
+import SystemMessage from "@/components/SystemMessage.vue";
 
 const store = useStore();
 const route = useRoute();

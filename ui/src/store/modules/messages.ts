@@ -19,12 +19,14 @@ export interface MessageState {
   messages: { [id: string]: Message[] };
   unreadMessageIds: { [id: string]: Set<string> };
   ws: WebSocket | null;
+  systemMessage: string;
 }
 
 const state: MessageState = {
   messages: {},
   unreadMessageIds: {},
   ws: null,
+  systemMessage: "",
 }
 
 const mutations = {
@@ -51,6 +53,9 @@ const getters = {
   isWsConnected: (state: MessageState) => () => {
     return state.ws !== null && state.ws.readyState === WebSocket.OPEN;
   },
+  systemMessage: (state: MessageState) => () => {
+    return state.systemMessage;
+  }
 };
 
 const actions = {
@@ -72,10 +77,9 @@ const actions = {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log(data);
         switch (data.type) {
           case EventType.MESSAGE:
-            console.log(data);
-
             const newMsg = {
               id: data.message_id,
               username: data.user.username,
@@ -98,7 +102,6 @@ const actions = {
             if (!newMsg.readers.find((r: any) => r.id === user.value.id)) {
               state.unreadMessageIds[data.chat_id].add(data.message_id);
             }
-
             state.messages[data.chat_id].push(newMsg);
             break;
           case EventType.UPDATE_READERS:
@@ -112,6 +115,12 @@ const actions = {
                 state.unreadMessageIds[data.chat_id].delete(data.message_id);
               }
             }
+            break;
+          case EventType.USER_ENTER_CHAT:
+            state.systemMessage = `Пользователь ${data.user.username} вошёл в чат`;
+            break;
+          case EventType.USER_EXIT_CHAT:
+            state.systemMessage = `Пользователь ${data.user.username} вышел из чата`;
             break;
           default:
             console.log("UB", event)
@@ -150,10 +159,10 @@ const actions = {
     })
   },
   enterChat({state}: ActionContext<MessageState, RootState>, chatId: string) {
-    state.ws.send(JSON.stringify({ type: EventType.USER_ENTER_CHAT, chat_id: chatId }));
+    state.ws.send(JSON.stringify({ type: EventType.USER_ENTER_CHAT, chat_id: chatId}));
   },
   exitChat({state}: ActionContext<MessageState, RootState>, chatId: string) {
-    state.ws.send(JSON.stringify({ type: EventType.USER_EXIT_CHAT, chat_id: chatId }));
+    state.ws.send(JSON.stringify({ type: EventType.USER_EXIT_CHAT, chat_id: chatId}));
   }
 }
 

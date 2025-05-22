@@ -19,6 +19,8 @@ ws_rout = APIRouter(prefix='/ws')
 
 active_connections: 'Dict[UUID, list[WebSocket]]' = {}
 
+online_users: 'Dict[UUID, list[UUID]]' = {}
+
 
 async def connect_user(user: 'UserDto', websocket: 'WebSocket'):
     await websocket.accept()
@@ -79,6 +81,31 @@ async def broadcast_update_readers(wse: WebSocketEvent, adapter: DataBaseAdapter
     await gather(*coroutines)
 
 
+async def broadcast_user_enter(wse: WebSocketEvent, adapter: DataBaseAdapter):
+    _logger.info('Broadcast user enter for %s', wse)
+    chat = await adapter.get_chat_by_id_and_user_id(wse.chat_id, wse.user.user_id)
+    if chat is None:
+        _logger.warning(f'No chat for {wse.chat_id}')
+        return
+    online_users.setdefault(chat.chat_id, []).append(wse.user.user_id)
+    coroutines = [broadcast_to_user(wse, user.user_id) for user in chat.participants]
+    await gather(*coroutines)
+
+
+async def broadcast_user_exit(wse: WebSocketEvent, adapter: DataBaseAdapter):
+    _logger.info('Broadcast user exit for %s', wse)
+    chat = await adapter.get_chat_by_id_and_user_id(wse.chat_id, wse.user.user_id)
+    if chat is None:
+        _logger.warning(f'No chat for {wse.chat_id}')
+        return
+
+    users = online_users.get(chat.chat_id, [])
+    users.remove(wse.user.user_id)
+    online_users[chat.chat_id] = users
+    coroutines = [broadcast_to_user(wse, user.user_id) for user in chat.participants]
+    await gather(*coroutines)
+
+
 async def handle_ws_event(wse: WebSocketEvent, adapter: DataBaseAdapter):
     match wse.type:
         case WebSocketEventType.PING | WebSocketEventType.PONG:
@@ -87,6 +114,10 @@ async def handle_ws_event(wse: WebSocketEvent, adapter: DataBaseAdapter):
             await broadcast_new_message(wse, adapter)
         case WebSocketEventType.UPDATE_READERS:
             await broadcast_update_readers(wse, adapter)
+        case WebSocketEventType.USER_ENTER_CHAT:
+            await broadcast_user_enter(wse, adapter)
+        case WebSocketEventType.USER_EXIT_CHAT:
+            await broadcast_user_exit(wse, adapter)
         case _: _logger.warning(f'Not handled {wse.type}')
 
 
@@ -98,7 +129,7 @@ async def websocket_endpoint(
 ):
     await connect_user(user, ws)
     async for msg in ws.iter_json():
-        _logger.info(f'{user.user_id} {user.username}: {msg}')
+        _logger.info(f'Message from {user.user_id} {user.username}: {msg}')
         msg.update({'ws': ws, 'user': user})
         event = None
         try:
