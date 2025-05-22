@@ -46,3 +46,7 @@
 
 
 ![chat](.assets/chat_two.png)
+
+![chat](.assets/chat_three.png)
+
+![chat](.assets/chat_four.png)

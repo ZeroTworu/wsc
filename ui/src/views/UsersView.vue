@@ -2,7 +2,7 @@
 <template>
   <v-container>
     <v-card>
-      <v-toolbar flat color="white">
+      <v-toolbar flat>
         <v-toolbar-title>Список пользователей</v-toolbar-title>
         <v-spacer />
         <v-btn
