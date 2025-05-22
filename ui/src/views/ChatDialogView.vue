@@ -8,14 +8,18 @@
       </v-toolbar>
 
       <v-card-text ref="chatWindow" class="chat-window">
-          <DisconnectAlert/>
-          <SystemMessage/>
-          <div v-for="(msg, index) in messages" :key="index" class="message">
-            <MessageItem
-              :msg="msg"
-              :is-own-message="msg.user_id === user.user_id"
-            />
-          </div>
+        <DisconnectAlert/>
+        <SystemMessage/>
+        <div v-for="(msg, index) in messages" :key="index" class="message">
+          <MessageItem
+            :msg="msg"
+            :is-own-message="msg.user_id === user.user_id"
+          />
+        </div>
+        <div v-if="showSys" class="system-message">
+            <v-icon small class="mr-2">mdi-information</v-icon>
+            {{ systemMessage }}
+        </div>
       </v-card-text>
 
       <v-divider/>
@@ -41,6 +45,7 @@
 import {onMounted, onBeforeUnmount, ref, computed, watch, nextTick} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useStore} from 'vuex';
+import { VIcon } from 'vuetify/components';
 import {EventType} from "@/store/stats";
 import MessageItem from "@/components/MessageItem.vue";
 import DisconnectAlert from "@/components/DisconnectAlert.vue";
@@ -53,13 +58,28 @@ const router = useRouter();
 const chatId = route.params.chat_id as string;
 
 const newMessage = ref('');
+const sysTxt = ref('');
+const showSys = ref(false);
 const ws = computed(() => store.state.messages.ws);
 const user = computed(() => store.getters['auth/me']);
 const chat = computed(() => store.getters['chats/chatById'](chatId));
 const messages = computed(() => store.getters['messages/messagesByChat'](chatId));
-const unreadMessageIds = computed(() => store.getters['messages/unreadMessageIdsByChatId'](chatId));
 const isWsConnected = computed(() => store.getters['messages/isWsConnected']);
+const systemMessage = computed(() => store.getters['messages/systemMessage']());
 const chatWindow = ref<HTMLElement | null>(null);
+
+watch(
+  () => systemMessage.value,
+  (newMessage) => {
+    if (newMessage) {
+      showSys.value = true;
+      scrollToBottom();
+      setTimeout(() => {
+        showSys.value = false
+      }, 5000);
+    }
+  }
+);
 
 watch(
   () => messages.value.length,
@@ -94,23 +114,9 @@ const sendMessage = () => {
   newMessage.value = '';
 };
 
-const sendReadUpdates = () => {
-  if (!isWsConnected.value || unreadMessageIds.value.size === 0) return;
-  for (const id of unreadMessageIds.value) {
-    const readMsg = {
-      type: EventType.UPDATE_READERS,
-      chat_id: chatId,
-      message_id: id,
-      user_id: user.value.user_id,
-    };
-    ws.value?.send(JSON.stringify(readMsg));
-  }
-  unreadMessageIds.value.clear();
-};
-
 const onVisibilityChange = () => {
   if (document.visibilityState === 'visible') {
-    sendReadUpdates();
+    store.dispatch("messages/sendAllUpdateRead", chatId);
   }
 };
 
@@ -152,4 +158,35 @@ onBeforeUnmount(() => {
 .message {
   margin-bottom: 10px;
 }
+
+.system-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px auto;
+  padding: 8px 16px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgba(var(--v-theme-on-background), 0.8);
+  border-radius: 16px;
+  max-width: 80%;
+  font-size: 0.9em;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.theme--dark .system-message {
+  background: rgba(var(--v-theme-primary-darken-1), 0.15);
+  color: rgba(var(--v-theme-on-primary-darken-1), 0.9);
+}
+
 </style>

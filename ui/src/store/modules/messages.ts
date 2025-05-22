@@ -12,6 +12,7 @@ export type Message = {
   showReadersList: boolean;
   created_at: string;
   updated_at: string;
+  type?: string
   id: string;
 }
 
@@ -20,6 +21,22 @@ export interface MessageState {
   unreadMessageIds: { [id: string]: Set<string> };
   ws: WebSocket | null;
   systemMessage: string;
+}
+
+export interface UpdateMessageReadPayload {
+  chatId: string;
+  messageId: string;
+}
+
+export interface AddMessagePayload {
+  chatId: string;
+  message: Message;
+}
+
+export interface UpdateReadersPayload {
+  chatId: string;
+  messageId: string;
+  readers: User[];
 }
 
 const state: MessageState = {
@@ -33,6 +50,48 @@ const mutations = {
   SET_WS(state: MessageState, ws: WebSocket) {
     state.ws = ws;
   },
+  SET_SYS_MSG(state: MessageState, message: string) {
+    state.systemMessage = message;
+  },
+  ADD_MESSAGE(state: MessageState, payload: AddMessagePayload) {
+    const user = store.getters['auth/me'];
+    if (state.messages[payload.chatId] == null) {
+      state.messages[payload.chatId] = [];
+    }
+
+    if (state.unreadMessageIds[payload.chatId] == null) {
+      state.unreadMessageIds[payload.chatId] = new Set();
+    }
+
+    if (!payload.message.readers.find((r: any) => r.id === user.value.id)) {
+      state.unreadMessageIds[payload.chatId].add(payload.message.id);
+    }
+    console.log(payload);
+    state.messages[payload.chatId].push(payload.message);
+  },
+  UPDATE_READERS(state: MessageState, payload: UpdateReadersPayload){
+    const { chatId, messageId, readers } = payload;
+    const user = store.getters['auth/me'];
+    const msg = state.messages[chatId].find(m => m.id === messageId);
+    if (msg) {
+      msg.readers = [...readers];
+      if (state.unreadMessageIds[chatId] == null) {
+        state.unreadMessageIds[chatId] = new Set();
+      }
+      if (readers.some((r: any) => r.user_id === user.user_id)) {
+        state.unreadMessageIds[chatId].delete(messageId);
+      }
+    }
+  },
+  CLEAR_UNREAD_MESSAGES(state: MessageState, chatId: string) {
+    if (!state.unreadMessageIds[chatId]) return;
+    state.unreadMessageIds[chatId].clear();
+  },
+  REMOVE_SYS_MESSAGE(state: MessageState, text: string, chatId: string) {
+    state.messages[chatId] = state.messages[chatId].filter(msg =>
+      !(msg.type === 'system' && msg.content === text)
+    );
+  }
 };
 
 const getters = {
@@ -60,16 +119,16 @@ const getters = {
 
 const actions = {
   connectWebSocket({commit, dispatch, state}: ActionContext<MessageState, RootState>) {
-    if (state.ws !== null && state.ws.readyState === WebSocket.OPEN) return;
+    if (state.ws !== null) return;
+    console.log("CONNECT WS");
     const token = localStorage.getItem("authToken") || "{}";
     if (!token) return;
     let reconnectInterval1: number, reconnectInterval2: number;
     const access_token = JSON.parse(token).access_token;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}?token=${access_token}`);
-    const user = store.getters['auth/me'];
+    commit("SET_WS", ws);
     ws.onopen = () => {
       ws.send(JSON.stringify({type: EventType.PING}));
-      commit("SET_WS", ws);
       if (reconnectInterval1 !== null) clearInterval(reconnectInterval1);
       if (reconnectInterval2 !== null) clearInterval(reconnectInterval2);
     };
@@ -77,7 +136,6 @@ const actions = {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log(data);
         switch (data.type) {
           case EventType.MESSAGE:
             const newMsg = {
@@ -90,37 +148,31 @@ const actions = {
               created_at: dayjs.unix(data.created_at).format("DD.MM.YYYY HH:mm:ss"),
               updated_at: dayjs.unix(data.updated_at).format("DD.MM.YYYY HH:mm:ss"),
             };
-
-            if (state.messages[data.chat_id] == null) {
-              state.messages[data.chat_id] = [];
+            commit("ADD_MESSAGE", {
+              chatId: data.chat_id,
+              message: newMsg,
+            });
+            if (document.visibilityState === 'visible') {
+              dispatch("sendUpdateRead",
+                {
+                  chat_id: data.chat_id,
+                  messageId: newMsg.id,
+                }
+              )
             }
-
-            if (state.unreadMessageIds[data.chat_id] == null) {
-              state.unreadMessageIds[data.chat_id] = new Set();
-            }
-
-            if (!newMsg.readers.find((r: any) => r.id === user.value.id)) {
-              state.unreadMessageIds[data.chat_id].add(data.message_id);
-            }
-            state.messages[data.chat_id].push(newMsg);
             break;
           case EventType.UPDATE_READERS:
-            const msg = state.messages[data.chat_id].find(m => m.id === data.message_id);
-            if (msg) {
-              msg.readers = data.readers;
-              if (state.unreadMessageIds[data.chat_id] == null) {
-                state.unreadMessageIds[data.chat_id] = new Set();
-              }
-              if (data.readers.some((r: any) => r.user_id === user.user_id)) {
-                state.unreadMessageIds[data.chat_id].delete(data.message_id);
-              }
-            }
+            commit("UPDATE_READERS", {
+              chatId: data.chat_id,
+              messageId: data.message_id,
+              readers: data.readers,
+            });
             break;
           case EventType.USER_ENTER_CHAT:
-            state.systemMessage = `Пользователь ${data.user.username} вошёл в чат`;
+            commit("SET_SYS_MSG", `Пользователь ${data.user.username} вошёл в чат`);
             break;
           case EventType.USER_EXIT_CHAT:
-            state.systemMessage = `Пользователь ${data.user.username} вышел из чата`;
+            commit("SET_SYS_MSG", `Пользователь ${data.user.username} вышел из чата`);
             break;
           default:
             console.log("UB", event)
@@ -138,6 +190,7 @@ const actions = {
     };
 
     ws.onclose = () => {
+      console.error("ws.onclose");
       commit("SET_WS", null);
       reconnectInterval2 = setInterval(() => dispatch("connectWebSocket"), 100);
     };
@@ -159,11 +212,30 @@ const actions = {
     })
   },
   enterChat({state}: ActionContext<MessageState, RootState>, chatId: string) {
-    state.ws.send(JSON.stringify({ type: EventType.USER_ENTER_CHAT, chat_id: chatId}));
+    state.ws.send(JSON.stringify({type: EventType.USER_ENTER_CHAT, chat_id: chatId}));
   },
   exitChat({state}: ActionContext<MessageState, RootState>, chatId: string) {
-    state.ws.send(JSON.stringify({ type: EventType.USER_EXIT_CHAT, chat_id: chatId}));
-  }
+    state.ws.send(JSON.stringify({type: EventType.USER_EXIT_CHAT, chat_id: chatId}));
+  },
+  sendUpdateRead({state}: ActionContext<MessageState, RootState>, payload: UpdateMessageReadPayload){
+    const user = store.getters['auth/me'];
+    const readMsg = {
+      type: EventType.UPDATE_READERS,
+      chat_id: payload.chatId,
+      message_id: payload.messageId,
+      user_id: user.user_id,
+    };
+    state.ws.send(JSON.stringify(readMsg));
+  },
+  sendAllUpdateRead({state, commit, dispatch}: ActionContext<MessageState, RootState>, chatId: string){
+    if(!state.ws) return;
+    console.log("sendAllUpdateRead");
+    const messageIds = [...state.unreadMessageIds[chatId] || []];
+    messageIds.forEach((id: string) => {
+      dispatch("sendUpdateRead", {chatId: chatId, messageId: id});
+    })
+    commit('CLEAR_UNREAD_MESSAGES', chatId);
+  },
 }
 
 export const messages: Module<MessageState, RootState> = {

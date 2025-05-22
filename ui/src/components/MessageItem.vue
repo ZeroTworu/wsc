@@ -35,7 +35,8 @@
 </template>
 
 <script setup lang="ts">
-import {computed, ref} from 'vue';
+import {computed, ref, watch} from 'vue';
+import {type User} from "@/store/modules/auth";
 import {useStore} from 'vuex';
 
 const props = defineProps({
@@ -53,14 +54,26 @@ const store = useStore();
 const user = computed(() => store.getters['auth/me']);
 const showReadersList = ref(false);
 
-const hasReaders = computed(() => props.msg.readers.length > 0);
-const multipleReaders = computed(() => props.msg.readers.length > 1);
+const readers = ref(props.msg.readers);
+
+
+watch(
+  () => props.msg.readers,
+  (newReaders) => {
+    console.log(newReaders);
+    readers.value = [...newReaders];
+  },
+  { deep: true }
+);
+
+const hasReaders = computed(() => readers.value.length > 0);
+const multipleReaders = computed(() => readers.value.length > 1);
 const filteredReaders = computed(() =>
-  props.msg.readers.filter((r: any) => r.user_id !== user.value.user_id)
+  readers.value.filter((r: User) => r.user_id !== user.value.user_id)
 );
 const noOtherReaders = computed(() =>
-  props.msg.readers.length === 0 ||
-  props.msg.readers.every((r: any) => r.user_id === user.value.user_id)
+  readers.value.length === 0 ||
+  readers.value.every((r: User) => r.user_id === user.value.user_id)
 );
 
 const showMenu = () => {
