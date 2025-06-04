@@ -1,6 +1,6 @@
 import type { Module, ActionContext } from 'vuex';
 import type { RootState } from '@/store';
-import { Api } from '@/api/api';
+import { Api } from "@/api/api.ts";
 import type { SystemUser } from './auth';
 
 export enum ChatType {

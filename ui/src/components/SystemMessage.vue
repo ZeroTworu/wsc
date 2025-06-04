@@ -1,22 +1,39 @@
 <template>
-<div
-    v-if="showSystemMessage"
+  <div
+    v-if="showSystemMessage && asSys"
     class="system-notification"
     :class="{ 'system-notification-visible': showSystemMessage }"
   >
     {{ currentSystemMessage }}
   </div>
+  <div v-if="showSys && !asSys" class="system-message">
+    <v-icon small class="mr-2">mdi-information</v-icon>
+    {{ systemMessage }}
+  </div>
 </template>
 
 <script setup lang="ts">
-import {computed, ref, watch} from "vue";
+import {computed, ref, watch, defineProps} from "vue";
 
 import {useStore} from "vuex";
+import {VIcon} from "vuetify/components";
+
 const store = useStore();
 
 const systemMessage = computed(() => store.getters['messages/systemMessage']());
 const showSystemMessage = ref(false);
 const currentSystemMessage = ref('');
+
+defineProps({
+  asSys: {
+    type: Boolean,
+    required: true
+  },
+  showSys: {
+    type: Boolean,
+    required: true
+  },
+});
 
 watch(
   () => systemMessage.value,
@@ -60,4 +77,19 @@ watch(
   background: rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.9);
 }
+
+.system-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px auto;
+  padding: 8px 16px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgba(var(--v-theme-on-background), 0.8);
+  border-radius: 16px;
+  max-width: 80%;
+  font-size: 0.9em;
+  animation: fadeIn 0.3s ease;
+}
+
 </style>

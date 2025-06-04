@@ -9,21 +9,16 @@
 
       <v-card-text ref="chatWindow" class="chat-window">
         <DisconnectAlert/>
-        <SystemMessage/>
+        <SystemMessage :show-sys="showSys" :as-sys="true"/>
         <div v-for="(msg, index) in messages" :key="index" class="message">
           <MessageItem
             :msg="msg"
             :is-own-message="msg.user_id === user.user_id"
           />
         </div>
-        <div v-if="showSys" class="system-message">
-            <v-icon small class="mr-2">mdi-information</v-icon>
-            {{ systemMessage }}
-        </div>
+        <SystemMessage :show-sys="showSys" :as-sys="false"/>
       </v-card-text>
-
       <v-divider/>
-
       <v-card-actions>
         <v-text-field
           v-model="newMessage"
@@ -45,11 +40,10 @@
 import {onMounted, onBeforeUnmount, ref, computed, watch, nextTick} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useStore} from 'vuex';
-import { VIcon } from 'vuetify/components';
-import {EventType} from "@/store/stats";
-import MessageItem from "@/components/MessageItem.vue";
-import DisconnectAlert from "@/components/DisconnectAlert.vue";
-import SystemMessage from "@/components/SystemMessage.vue";
+import {EventType} from "../store/stats";
+import MessageItem from "../components/MessageItem.vue";
+import DisconnectAlert from "../components/DisconnectAlert.vue";
+import SystemMessage from "../components/SystemMessage.vue";
 
 const store = useStore();
 const route = useRoute();
@@ -58,7 +52,6 @@ const router = useRouter();
 const chatId = route.params.chat_id as string;
 
 const newMessage = ref('');
-const sysTxt = ref('');
 const showSys = ref(false);
 const ws = computed(() => store.state.messages.ws);
 const user = computed(() => store.getters['auth/me']);
@@ -157,20 +150,6 @@ onBeforeUnmount(() => {
 
 .message {
   margin-bottom: 10px;
-}
-
-.system-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 8px auto;
-  padding: 8px 16px;
-  background: rgba(var(--v-theme-primary), 0.1);
-  color: rgba(var(--v-theme-on-background), 0.8);
-  border-radius: 16px;
-  max-width: 80%;
-  font-size: 0.9em;
-  animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {

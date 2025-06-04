@@ -35,8 +35,8 @@
 </template>
 
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue';
-import {type User} from "@/store/modules/auth";
+import {computed, ref, watch, defineProps} from 'vue';
+import {type User} from "../store/modules/auth";
 import {useStore} from 'vuex';
 
 const props = defineProps({
