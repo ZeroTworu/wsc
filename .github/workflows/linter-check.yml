@@ -3,7 +3,7 @@ name: "Liter Check"
 on:
   push:
     branches:
-      - "master"
+      - "*"
   pull_request:
     branches:
       - "master"
@@ -11,13 +11,14 @@ on:
 jobs:
   license-check:
     name: "Python linter"
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
 
     container:
       image: "hanyuu/python:wps"
 
     steps:
       - name: "Checkout code"
+        uses: "actions/checkout@v3"
 
       - name: "Run linter"
         run: "flake8 app/"
